@@ -2,7 +2,8 @@
   (file, stdlib.u, (
     (type, size_t, int64),
 
-    //TODO: new, delete, copyInto, copy, typeof
+    //TODO: delete, copyInto, copy, typeof, sizeof
+    //TODO: new = &Type{}, construct = Type{}
 
     (type, (array[], T), (struct, (
       (elements, *T, nil), //TODO: Pointer type //TODO: var keyword?
@@ -65,7 +66,7 @@
         (return, nil)
       ), ()),
 
-      (set, newPerson, &Person{name, age}), //TODO: Construct new
+      (set, newPerson, (new, Person, (name, age))),
 
       (call, typeof(p.children), append, (p.children, newPerson)), //TODO: &p.children? See "&name?"
       (if, p.spouse, (
@@ -100,12 +101,12 @@
     )),
 
     (fun, main, ((args, (array[], string))), (int), (
-      (set, A, Person{args[0], 22}), //TODO: Construct
-      (set, B, Person{args[1], 21}), //TODO: Construct
+      (set, A, (construct, Person, (call, typeof(args), [], (args, 0), 22))), //TODO: &args? See "&name?"
+      (set, B, (construct, Person, (call, typeof(args), [], (args, 1), 21))), //TODO: &args? See "&name?"
 
       (if, (!, (call, startFamily, (A, B))), (
-        print("[startFamily] Error")
-        return 1
+        (call, print, "[startFamily] Error"),
+        (return, 1)
       ), (
         (if, (!, (call, testFamily, (A))), (
           (call, print, ("[testFamily] Error")),
