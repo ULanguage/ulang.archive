@@ -172,6 +172,8 @@ fun main(/* array[string] */ args) /* int */ {
 
 // stdlib.u (implicit import)
 
+type size_t = int64
+
 fun new(size_t size) *byte { // Also used on &Person{}
   malloc(size)
 }

@@ -123,3 +123,116 @@
 * Sort-of keywords: typeof(X)
 * Multi-line expressions
 
+## Steps
+
+### File
+
+0. Init
+1. Split into lines
+1. Search until finding first expression
+  1. Apply steps for an expression
+1. Repeat with the next expression
+
+### Expression
+0. Init
+```
+fun (array[T] a) append(T newElement) size_t {
+  if a.elements == NULL || a.size == a.maxSize {
+    a.expand()
+  }
+
+  a[a.size] = newElement
+  a.size += 1
+  return a.size
+}
+```
+1. Receives only the first line
+```
+fun (array[T] a) append(T newElement) size_t {
+```
+1. Split by spaces except when inside (), [], {}, or ""
+```
+(fun, \(array[T] a\), append(T newElement), size_t, {)
+```
+1. Identify based on first element (in this case it's a function) and current scope.  
+  If no keyword matches, it's a general expression.
+1. Apply steps based on type of expression and current scope
+
+#### Type
+0. Init
+```
+type array[T] = struct {
+  *T elements = nil
+  size_t size = 0
+  size_t maxSize = 0
+}
+```
+1. Will be left at
+```
+(type, array[T], =, struct, {)
+```
+1. Second is name
+1. Third has to be "="
+1. Fourth is either typename or struct //TODO: Is struct unnecesary?
+  1. If typename, parse it as such
+  1. If struct will parse next few lines until "}" as struct
+
+#### Struct
+0. Was left at
+```
+// type array[T] = struct { // This line has already been read
+  *T elements = nil
+  size_t size = 0
+  size_t maxSize = 0
+}
+```
+1. Build
+```
+(struct)
+```
+1. Read and parse as variables the next lines until closing "}" (drop the "}") and put them at the end // TODO: Nothing trailing after "}"
+```
+(struct, (...))
+```
+
+#### Variable
+0. Was left at
+```
+  *T elements = nil
+```
+1. If there's an "="
+  1. Split at "="
+1. Split the first (or whole if no "=") part by spaces, has to be of length 1 or 2.
+  1. If 1 and "=" infer type from second part //TODO: When?
+  1. If 1 and no "=", error
+  1. If 2 first is typename, second is name
+```
+  (elements, *T)
+```
+1. If there was an "=", parse second part as expression and put it at the end
+```
+  (elements, *T, nil)
+```
+
+#### Function
+0. Was left at
+```
+(fun, \(array[T] a\), append(T newElement), size_t, {)
+```
+1. Check if second is for a struct function or function\_def //TODO: How?
+  1. In this case is for a struct function, so third is function\_def //TODO: How to parse it?
+    ```
+    (fun, \(array[T] a\), append, ((newElement, T)), size_t, {)
+    ```
+  1. Add second as first parameter //How?
+    ```
+    (fun, append, ((a, array[], T), (newElement, T)), size_t, {)
+    ```
+1. Fifth and until "{" are outputs, also drop "{" //NOTE: Current fifth
+```
+(fun, append, ((a, array[], T), (newElement, T)), (size_t))
+```
+1. Read lines and parse them as expressions until next "}" (and drop the "}") // TODO: Nothing trailing after "}", put that at the end
+```
+(fun, append, ((a, array[], T), (newElement, T)), (size_t), (...))
+```
