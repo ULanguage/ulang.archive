@@ -72,14 +72,14 @@ TODO: Sort
     Sets the value of the second into the first
     `int foo = bar()` -> (set, foo, (call, bar, (), ()))
 
-  * (pset, VARNAME or PTR, NEWVALUE) where PTR would be a constant pointer  
+  * (setp, VARNAME or PTR, NEWVALUE) where PTR would be a constant pointer  
     Sets the value of the second into where the first one points.  
-    `*int foo = bar()` -> (pset, foo, (call, bar, (), ())) (or set if bar returns a pointer to an integer, is inferred) //TODO: Better explanation
+    `*int foo = bar()` -> (setp, foo, (call, bar, (), ())) (or set if bar returns a pointer to an integer and lower(higher) level than 2, is inferred) //TODO: Better explanation
 
   * (return, VARNAME or CONSTVALUE), returns a value and exits a function
   * (if, COND, (...), (...)) where COND is an expression that returns a bool, executes the first path if true, or the second path if fals
 
-  * (construct, VARNAME, TYPENAME, (...VARNAME)), constructs an element of the type into a variable //TODO: On the stack for compiled //TODO: Infers wether to pset or set based on type of varname and typename
+  * (construct, VARNAME, TYPENAME, (...VARNAME)), constructs an element of the type into a variable //TODO: On the stack for compiled //TODO: Infers wether to setp or set based on type of varname and typename
   NOTE: &Type{} doesn't construct, but rather calls new and constructs into it //TODO: Better explanation
 
   * (&, VARNAME) returns a pointer to this variable

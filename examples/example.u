@@ -16,18 +16,18 @@ Person = struct {
   children
 }
 
-fun (p Person) growUp() {
+fun (Person p) growUp() { // p is actually *p
   p.age += 1
   // return p
 }
 
-fun (p Person) marry(spouse) {
+fun (Person p) marry(spouse) { // p is actually *p
   p.spouse = spouse
   spouse.spouse = p
   // return p
 }
 
-fun (p Person) haveChild(name, age = 0) {
+fun (Person p) haveChild(name, age = 0) { // p is actually *p
   if name.empty() {
     return nil
   }
