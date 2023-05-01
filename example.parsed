@@ -25,19 +25,19 @@
       (return, (call, typeof(a.elements), [], (a.elements, at))) //TODO: pointer[at]
     )),
 
+    (fun, (array[], T), empty, ((a, (*array[], T))), (bool), (
+      (return, (==, a.size, 0)) //TODO: Convert size to bool and not it
+    )),
+
     (fun, (array[], T), expand, ((a, (*array[], T))), (size_t), (
       (set, a.maxSize, (+, a.maxSize, 1)),
       (set, a.elements, realloc(a.elements, a.maxSize)), //TODO: realloc
       (return, a.maxSize)
     )),
 
-    type string = struct {
-      // TODO ...
-    }
+    (type, string, (array[], char))
 
-    fun print() {
-      // TODO ...
-    }
+    //fun print() { ... } //TODO: Variable args
 
   )), (file, person.u, (
 
