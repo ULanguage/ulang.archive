@@ -170,6 +170,8 @@ fun main(args) /* int */ {
 ; str1 "[startFamily] Error"
 ; str2 "[testFamily] Success"
 ; str3 "[testFamily]"
+; str4 "Gafia"
+; str5 ""
 
 ;* stdlib *
 ; TODO
@@ -242,13 +244,26 @@ import (
   ./person.u
 )
 
-fun startFamily(*Person A, B) /* bool */ {
-  C = G.marry(S).haveChild("Gafia")
-  N = S.haveChild("")
-
-  print("[startFamily]", A, B, C, N, sep = ", ")
-  // return true
-}
+; fun startFamily(*Person A, B) bool
+startFamily:
+  ; Make space for C, N, and res, on the stack ; NOTE: Both are pointers (inferred from return types) ; TODO: Also for call structs
+  ; res = true
+  ;
+  ; construct call for Person.marry(A, B)
+  ; call it
+  ;
+  ; construct call for Person.haveChild(previous result, str4) ; TODO: Where does previous result live?
+  ; call it
+  ; put the result into C
+  ;
+  ; construct call for Person.haveChild(S, str5)
+  ; put the result into N
+  ; 
+  ; construct call for print(str6, A, B, C, N, sep = ", ")
+  ; call it
+  ;
+  ; remove stack frame
+  ; ret with res
 
 ; fun testFamily(*Person A) bool
 testFamily:

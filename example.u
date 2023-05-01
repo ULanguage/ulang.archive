@@ -49,8 +49,8 @@ import (
 )
 
 fun startFamily(A, B) {
-  C = G.marry(S).haveChild("Gafia")
-  N = S.haveChild("")
+  C = A.marry(B).haveChild("Gafia")
+  N = B.haveChild("")
 
   print("[startFamily]", A, B, C, N, sep = ", ")
   // return true
@@ -130,8 +130,8 @@ import (
 )
 
 fun startFamily(*Person A, B) /* bool */ {
-  C = G.marry(S).haveChild("Gafia")
-  N = S.haveChild("")
+  C = A.marry(B).haveChild("Gafia")
+  N = B.haveChild("")
 
   print("[startFamily]", A, B, C, N, sep = ", ")
   // return true
@@ -177,7 +177,10 @@ fun new(size_t size) *byte { // Also used on &Person{}
 }
 
 fun delete(*byte ptr) {
-  free(size)
+  // TODO: Keep track of alloced pointers and check it's a valid one
+  if ptr != NULL {
+    free(ptr)
+  }
 }
 
 fun copyInto(*byte from, to, size_t size) { //TODO: Depth
@@ -251,10 +254,11 @@ import (
 )
 
 fun startFamily(*Person A, B) /* bool */ {
-  C = G.marry(S).haveChild("Gafia")
-  N = S.haveChild("")
+  C = A.marry(B).haveChild("Gafia")
+  N = B.haveChild("")
 
   print("[startFamily]", A, B, C, N, sep = ", ")
+  delete(N) // Unnecessary because it will be nil, but just in case
   // return true
 }
 
