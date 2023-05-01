@@ -1,0 +1,119 @@
+(
+  (file, stdlib.u, (
+    (type, size_t, int64),
+
+    //TODO: new, delete, copyInto, copy, typeof
+
+    (type, (array[], T), (struct, (
+      (elements, *T, nil), //TODO: Pointer type //TODO: var keyword?
+      (size, size_t, 0),
+      (maxSize, size_t, 0)
+    ))),
+
+    (fun, (array[], T), append, ((a, (*array[], T)), (newElement, T)), (size_t), ( //TODO: Return type keyword? // TODO: var keyword on parameters?
+      (if, (||, (==, a.elements, NULL), (==, a.size, a.maxSize)), (
+        (call, typeof(a), expand, (), ()) 
+      ), ()),
+
+      (set, (call, typeof(a), [], (a.size), ()), newElement), //NOTE: Should be setp
+      (set, a.size, (+, a.size, 1)),
+      (return, a.size)
+    )),
+
+    (fun, (array[], T), [], ((a, (*array[], T)), (at, size_t)), (*T), (
+      (return, (call, typeof(a.elements), [], (a.elements, at))) //TODO: pointer[at]
+    )),
+
+    (fun, (array[], T), expand, ((a, (*array[], T))), (size_t), (
+      (set, a.maxSize, (+, a.maxSize, 1)),
+      (set, a.elements, realloc(a.elements, a.maxSize)), //TODO: realloc
+      (return, a.maxSize)
+    )),
+
+    type string = struct {
+      // TODO ...
+    }
+
+    fun print() {
+      // TODO ...
+    }
+
+  )), (file, person.u, (
+
+    (import, (stdlib.u)), //TODO: stdlib as lib
+
+    (type, Person, (struct, (
+      (name, string),
+      (age, int),
+      (spouse, *Person, nil),
+      (children, (array[], *Person), array[*Person]{}), //TODO: Construct
+    ))),
+
+    (fun, growUp, ((p, *Person)), (*Person), (
+      (set, p.age, (+, p.age, 1)),
+      (return, p)
+    )),
+
+    (fun, marry, ((p, *Person), (spouse, *Person)), (*Person), (
+      (set, p.spouse, spouse),
+      (set, spouse.spouse, p),
+      (return, p)
+    )),
+
+    (fun, haveChild, ((p, *Person), (name, string), (age, int, 0)), (*Person), (
+      (if, (call, typeof(name), empty, (name)), ( //TODO: &name? Should be inferred from function parameters
+        (return, nil)
+      ), ()),
+
+      (set, newPerson, &Person{name, age}), //TODO: Construct new
+
+      (call, typeof(p.children), append, (p.children, newPerson)), //TODO: &p.children? See "&name?"
+      (if, p.spouse, (
+        (call, typeof(p.spouse.children), append, (p.spouse.children, newPerson)) //TODO: &p.spouse.children? See "&name?"
+      ), ()),
+
+      (return, newPerson)
+    ))
+
+  )), (file, main.u, (
+
+    (import, (./person.u)),
+
+    (fun, startFamily, ((A, *Person), (B, *Person)), (bool), (
+      (set, C, (call, typeof(A.marry(B)), haveChild, ((call, typeof(A), marry, (A, B)), "Gafia"))),
+      (set, N, (call, typeof(B), haveChild, (B, ""))),
+
+      (call, print, ("[startFamily]", A, B, C, N), (sep, ", ")),
+      (call, delete, N),
+      (return, true),
+    )),
+
+    (fun, testFamily, ((A, *Person)), (bool), (
+      (set, C, (call, typeof(A.children), [], (A.children, 0))), //TODO: &A.children? See "&name?"
+      (set, D, copy(C)),
+
+      (set, theSame, (==, C, D)),
+      (call, print, ("[testFamily]", C, D, theSame, (||, C, C), (||, D, D))),
+
+      (call, delete, D),
+      (return, (!, theSame))
+    )),
+
+    (fun, main, ((args, (array[], string))), (int), (
+      (set, A, Person{args[0], 22}), //TODO: Construct
+      (set, B, Person{args[1], 21}), //TODO: Construct
+
+      (if, (!, (call, startFamily, (A, B))), (
+        print("[startFamily] Error")
+        return 1
+      ), (
+        (if, (!, (call, testFamily, (A))), (
+          (call, print, ("[testFamily] Error")),
+          (return, 1)
+        ), ())
+      )),
+
+      (return, 0)
+    ))
+  ))
+)

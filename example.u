@@ -60,10 +60,11 @@ fun testFamily(A) {
   C = A.children[0]
   D = copy(C) 
 
-  equivalent = C == D // Have the same value
-  print("[testFamily]", C, D, equivalent)
+  //TODO: Removed equivalent
+  themSame = C == D // Point to the same thing
+  print("[testFamily]", C, D, themSame)
 
-  return equivalent
+  return !theSame
 }
 
 fun main(args) {
@@ -97,18 +98,18 @@ type Person = struct {
   array[*Person] children = array[*Person]{}
 }
 
-fun (p Person) growUp() /* *Person */ {
+fun (Person *p) growUp() /* *Person */ {
   p.age += 1
   // return p
 }
 
-fun (p Person) marry(*Person spouse) /* *Person */ {
+fun (Person *p) marry(*Person spouse) /* *Person */ {
   p.spouse = spouse
   spouse.spouse = p
   // return p
 }
 
-fun (p Person) haveChild(string name, int age = 0) *Person {
+fun (Person *p) haveChild(string name, int age = 0) *Person {
   if name.empty() {
     return nil
   }
@@ -141,11 +142,11 @@ fun testFamily(*Person A) /* bool */ {
   C = A.children[0]
   D = copy(C) // TODO: depth
 
-  equivalent = C == D // Have the same value
-  theSame = C === D // Same pointer (should be false)
-  print("[testFamily]", C, D, equivalent, theSame, C === C, D === D)
+  //TODO: Removed equivalent
+  theSame = C == D // Same pointer
+  print("[testFamily]", C, D, theSame, C == C, D == D)
 
-  return equivalent && !theSame
+  return !theSame
 }
 
 fun main(/* array[string] */ args) /* int */ {
@@ -202,7 +203,7 @@ type array[T] = struct {
   size_t maxSize = 0
 }
 
-fun (array[T] a) append(T newElement) size_t {
+fun (*array[T] a) append(T newElement) size_t {
   if a.elements == NULL || a.size == a.maxSize {
     a.expand()
   }
@@ -212,15 +213,15 @@ fun (array[T] a) append(T newElement) size_t {
   return a.size
 }
 
-fun (array[T] a) [](size_t at) *T {
+fun (*array[T] a) [](size_t at) *T {
   return a.elements[at]
 }
 
-fun (array[T] a) [](size_t at) T {
+fun (*array[T] a) [](size_t at) T {
   return *a[at]
 }
 
-fun (array[T] a) expand() size_t {
+fun (*array[T] a) expand() size_t {
   a.maxSize += 1 // TODO: Smarter 
   a.elements = realloc(a.elements, a.maxSize)
   return a.maxSize
@@ -249,18 +250,18 @@ type Person = struct {
   array[*Person] children = array[*Person]{}
 }
 
-fun (p Person) growUp() /* *Person */ {
+fun (*Person p) growUp() /* *Person */ {
   p.age += 1
   // return p
 }
 
-fun (p Person) marry(*Person spouse) /* *Person */ {
+fun (*Person p) marry(*Person spouse) /* *Person */ {
   p.spouse = spouse
   spouse.spouse = p
   // return p
 }
 
-fun (p Person) haveChild(string name, int age = 0) *Person {
+fun (*Person p) haveChild(string name, int age = 0) *Person {
   if name.empty() {
     return nil
   }
@@ -294,12 +295,12 @@ fun testFamily(*Person A) /* bool */ {
   C = A.children[0]
   D = copy(C) // TODO: depth
 
-  equivalent = C == D // Have the same value
-  theSame = C === D // Same pointer
-  print("[testFamily]", C, D, equivalent, theSame, C === C, D === D)
+  //TODO: Removed equivalent
+  theSame = C == D // Same pointer
+  print("[testFamily]", C, D, theSame, C == C, D == D)
 
   delete(D)
-  return equivalent && !theSame
+  return !theSame
 }
 
 fun main(/* array[string] */ args) /* int */ {
