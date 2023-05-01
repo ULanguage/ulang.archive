@@ -195,7 +195,33 @@ fun copy(*byte from, size_t size) *byte { //TODO: Depth
 }
 
 type array[T] = struct {
-  // TODO ...
+  *T elements = nil
+  size_t size = 0
+  size_t maxSize = 0
+}
+
+fun (array[T] a) append(T newElement) size_t {
+  if a.elements == NULL || a.size == a.maxSize {
+    a.expand()
+  }
+
+  a[a.size] = newElement
+  a.size += 1
+  return a.size
+}
+
+fun (array[T] a) [](size_t at) *T {
+  return a.elements[at]
+}
+
+fun (array[T] a) [](size_t at) T {
+  return *a[at]
+}
+
+fun (array[T] a) expand() size_t {
+  a.maxSize += 1 // TODO: Smarter 
+  a.elements = realloc(a.elements, a.maxSize)
+  return a.maxSize
 }
 
 type string = struct {

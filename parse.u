@@ -1,5 +1,40 @@
 (
-  (file, person.u, (
+  (file, stdlib, ( //TODO: lib
+
+    (type, size_t, int64),
+
+    (ttype, array[], (T), (struct, (
+      (*T, elements, nil),
+      (size_t, size, 0),
+      (size_t, maxSize, 0)
+    ))),
+
+    (tfun, (array[], (T)), append, ((*array[T], a), (T, newElement)), (size_t), ( //TODO: *array[T] a
+      (if, (||, (call, ==, (a.elements, NULL)), (call, ==, (a.size, a.maxSize))), (
+        (call, typeof(a).expand, (a))
+      ), ()),
+
+      a[a.size] = newElement //TODO
+      (set, a.size, (+, a.size, 1)),
+      (return, a.size)
+    )),
+
+    (tfun, (array[], (T)), [], ((*array[T], a), (size_t, at)), (*T), (
+      (return, (call, typeof(a.elements)[], (a.elements, at))) //TODO: Special for *
+    )),
+
+    fun (array[T] a) [](size_t at) T {
+      return *a[at]
+    }
+
+    fun (array[T] a) expand() size_t {
+      a.maxSize += 1 // TODO: Smarter 
+      a.elements = realloc(a.elements, a.maxSize)
+      return a.maxSize
+    }
+
+
+  )), (file, person.u, (
     (import, (stdlib)),
 
     (type, Person, (struct, (
@@ -61,14 +96,14 @@
     )),
 
     (fun, main, ((array[string], args)), (int), (
-      (set, A, (construct, Person, ((call, array[i], (args, 0)), 22)),
-      (set, B, (construct, Person, ((call, args[i], (args, 1)), 21})),
+      (set, A, (construct, Person, ((call, array[i], (args, 0)), 22))),
+      (set, B, (construct, Person, ((call, args[i], (args, 1)), 21}))),
 
-      (if, (!, (call, startFamily, (A, B))), (
+      (if, (!, (call, startFamily, ((&, A), (&, B)))), (
         (call, print, ("[startFamily] Error")),
         (return, (1))
       ),
-        (if, (!, (call, testFamily, (A)), (
+        (if, (!, (call, testFamily, ((&, A))), (
           (call, print, ("[testFamily] Error")),
           (return, (1)),
         ), ())
