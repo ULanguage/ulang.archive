@@ -29,10 +29,37 @@
 ## Parser
 ### Steps
 1. Split by spaces (except when inside "")
-1. Identify keywords
+1. For each file
+  1. Create (file, path, CODE)  
+    Where CODE is (...) of:
+    * (type, NAME, DEF)  
+      Where DEF is a combination of type names or a struct
+    * 
+
+### Expressions
+#### Types
+ * (file, PATH, (...)), describes a file
+ * (import, (...FILEPATH or LIBNAME)), imports other files //TODO: Other types of imports
+ * (type, NAME, DEF) where DEF is either another typename or struct, describes a type
+ * (struct, (...PARAM)), describes a data structure
+ * (fun, NAME, (...PARAM), (...TYPENAMES), (...)), describes a function
+ * (tfun, TYPENAME, NAME, (...PARAM), (...TYPENAMES), CODE), describes a function for a type
+ * Param: (TYPENAME, VARNAME) or (TYPENAME, VARNAME, DEFAULTVALUE), describes a paramter for a function or struct
+
+#### Actions
+  * (set, VARNAME, NEWVALUE) where NEWVALUE is an expression, sets the value of the second into the first
+  * (call, FUNNAME, (..VARNAME)), calls funname with varnames as // TODO: Setting values like in `sep = "\n"`
+  * (return, VARNAME or CONSTVALUE), returns a value from a fucntion
+  * (if, COND, (...) truePath, (...) elsePath) where COND is an expression that returns a bool, executes the first path if true, or the second path if false
+  * (new, TYPENAME, (...VARNAME)), returns a pointer to a new element of the type
+  * (construct, VARNAME, TYPENAME, (...VARNAME)), constructs an element of the type //TODO: Where?
+  * (&, VARNAME) returns a pointer to this variable
+  * (!, COND) where cond is a boolean expression, not
+  * TODO...
 
 ### TODO
-* Keywords: fun, tfun, set, if, call, return, !, ===, &&, ||
+* Keywords: fun, tfun, set, new, construct, if, call, return, !, ===, &&, ||, +, -
 * Sort-of keywords: typeof(X)
+* 
 * Multi-line expressions
 
