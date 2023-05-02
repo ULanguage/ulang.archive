@@ -11,7 +11,6 @@ main:
   mov qword [rsp], 8
   mov qword [rsp + 8], 11
   mov rax, 60
-  mov rdi, [rsp + 8]
+  mov rdi, [rsp]
   add rsp, 16
   syscall
-
