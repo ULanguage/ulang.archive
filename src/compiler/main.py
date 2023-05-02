@@ -1,9 +1,10 @@
 if __name__ == '__main__':
   prog = (
-    ('def', 'test', 5),
+    ('def', 'test', 8),
     ('func', 'main', 
-      ('exit', 4),
+      ('exit', ('var', 'ing')),
     ),
+    ('def', 'ing', 3),
   )
 
   # Step 1, Checks
@@ -21,7 +22,13 @@ if __name__ == '__main__':
       s += expr[1] + ':\n'
       for subexpr in expr[2:]:
         if subexpr[0] == 'exit':
-          s += f'  mov rax, 60\n  mov rdi, {subexpr[1]}\n  syscall\n'
+          s += '  mov rax, 60\n'
+          ssubexpr = subexpr[1]
+          if ssubexpr[0] == 'int':
+            s += f'  mov rdi, {ssubexpr[1]}\n'
+          elif ssubexpr[0] == 'var':
+            s += f'  mov rdi, [{ssubexpr[1]}]\n'
+          s += '  syscall\n'
 
       text += s
     elif expr[0] == 'def':
