@@ -59,11 +59,11 @@ class expr_t:
     self.args = [expr_t(subexpr) for subexpr in expr[2:]]
 
   def init_def(self):
-    # (def, string name)
-    # TODO: Define type
+    # (def, string name, string varType)
     # TODO: Default value
     expr = self._expr # Rename
     self.name = expr[1]
+    self.varType = expr[2]
 
   def init_var(self):
     # (var, string name)
@@ -148,7 +148,7 @@ class expr_t:
     return [self.name, args]
 
   def str_def(self):
-    return [self.name]
+    return [self.name, self.varType]
 
   def str_var(self):
     return [self.name]

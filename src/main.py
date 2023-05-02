@@ -11,15 +11,15 @@ if __name__ == '__main__':
   prog = expr_t(('prog', 'test',
     ('file', 'main.u',
       ('fun', 'print', (('param', 'G', ()), ('param', 'S', ('_p', 'Sofia'))), 
-        ('def', 'foo'),
+        ('def', 'foo', '_p'),
         ('set', 'foo', ('_p', 'ama a')),
         ('print', ('var', 'G'), ('var', 'foo'), ('var', 'S')),
         ('return', ('_p', 'Galileo')),
       ),
       ('fun', 'main', (),
-        ('def', 'G'),
+        ('def', 'G', '_p'),
         ('set', 'G', ('_p', 'Galileo')),
-        ('return', ('call', 'print', ('var', 'G'), ('_p', 'Sofi'))),
+        # ('return', ('call', 'print', ('var', 'G'), ('_p', 'Sofi'))),
       ),
     )
   ))

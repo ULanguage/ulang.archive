@@ -1,4 +1,5 @@
 from expr import expr_t
+from var import var_t
 import utils
 
 class state_t:
@@ -11,7 +12,7 @@ class state_t:
     self.returned = False
 
   def execute(self, expr):
-    # print('[execute]', self, expr) # TODO: Print current state # TODO: Arg to debug or not
+    print('[execute]', self, expr) # TODO: Print current state # TODO: Arg to debug or not
 
     t = expr.type
     if t == 'empty': pass
@@ -57,16 +58,20 @@ class state_t:
 
   def exec_def(self, expr):
     # TODO: Check it doesn't exist or error
-    self.vars[expr.name] = None
+    self.vars[expr.name] = var_t(None, expr.varType) # TODO: Default value
 
   def exec_var(self, var):
-    value = self.findVar(var.name)
-    if value is None:
+    res = self.findVar(var.name)
+    if res is None:
       return None #TODO: Error
-    return value
+    return res
 
   def exec_set(self, expr):
-    self.vars[expr.varname] = self.execute(expr.expr)
+    var = self.findVar(expr.varname)
+    newValue = self.execute(expr.expr)
+    if var.type != newValue.type:
+      print('[exec_set] ERROR: Wrong types:', var.type, newValue.type)
+    var.value = newValue
 
   def exec_return(self, expr):
     self.res = self.execute(expr.expr)
@@ -79,7 +84,7 @@ class state_t:
     print(' '.join([str(self.execute(subexpr)) for subexpr in expr.exprs]))
 
   def exec__p(self, expr):
-    return expr.value
+    return var_t(expr.value, '_p')#str(type(expr.value))) #TODO: Type
 
   #************************************************************
   #* Utils ****************************************************
@@ -96,6 +101,7 @@ class state_t:
         matches &= arg.type != 'empty'
 
       #TODO: Named params
+      #TODO: Check param types
       #TODO: Check return types
       #TODO: Check template types
       if matches:
