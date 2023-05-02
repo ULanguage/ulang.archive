@@ -11,7 +11,7 @@ class state_t:
     self.returned = False
 
   def execute(self, expr):
-    # print('[state_t.execute]', expr) # TODO: Print current state # TODO: Arg to debug or not
+    # print('[execute]', self, expr) # TODO: Print current state # TODO: Arg to debug or not
 
     t = expr.type
     if t == 'empty': pass
@@ -38,7 +38,7 @@ class state_t:
 
     child = self.child() # TODO: Should this be inside exec_file?
     child.execute(file)
-    return child.execute(expr_t(('call', 'main'))) # TODO: Args
+    return child.child().execute(expr_t(('call', 'main'))) # TODO: Args
 
   def exec_file(self, file):
     for expr in file.exprs: # TODO: Execute in order based on type of expression, such that all functions are defined before all variables?
@@ -50,6 +50,7 @@ class state_t:
   def exec_call(self, call):
     fun = self.findFun(call.name) # TODO: Also callable variables
     if fun is None:
+      print('[exec_call] ERROR: No such function', call.name)
       return None #TODO: Error
 
     return self.callFun(call, fun)
@@ -116,10 +117,10 @@ class state_t:
     #TODO: Check all params have a value
 
     for expr in fun.exprs:
-      self.execute(expr)
-      if self.returned:
+      child.execute(expr)
+      if child.returned:
         break
-    return self.res
+    return child.res
 
   def child(self):
     return state_t(parent = self)
@@ -129,4 +130,4 @@ class state_t:
   def __repr__(self):
     return str(self)
   def __str__(self):
-    return f'state<{self.funs}, {self.vars}>'
+    return f'state<{not self.parent is None}, {list(self.funs.keys())}, {list(self.vars.keys())}>'
