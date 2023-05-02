@@ -144,6 +144,11 @@ class state_t:
       sib.execute(expr)
       if sib.returned:
         break
+
+    if sib.res.type != fun.retType:
+      print('[callFun] ERROR: Wrong return type', repr(sib.res), repr(fun))
+      #TODO: Error
+
     return sib.res
 
   def child(self):

@@ -7,8 +7,9 @@ class var_t:
     self.type = t
   
   def __repr__(self):
-    return str(self)
+    return f'var<{self.value}, {self.type}>'
+
   def __str__(self):
     t = self.type
     if t in utils.intrinsic: return f'{self.value}'
-    else: return f'var<{self.value}, {t}>'
+    else: return repr(self)

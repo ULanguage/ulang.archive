@@ -45,12 +45,13 @@ class expr_t:
     self.exprs = [expr_t(subexpr) for subexpr in expr[2:]]
 
   def init_fun(self):
-    # (fun, string name, (expr_t params...), expr_t exprs...)
+    # (fun, string name, (expr_t params...), string retType, expr_t exprs...)
     # TODO: Named params
     expr = self._expr # Rename
     self.name = expr[1]
     self.params = [expr_t(subexpr) for subexpr in expr[2]]
-    self.exprs = [expr_t(subexpr) for subexpr in expr[3:]]
+    self.retType = expr[3]
+    self.exprs = [expr_t(subexpr) for subexpr in expr[4:]]
 
   def init_call(self):
     # (call, string name, expr_t args...)
