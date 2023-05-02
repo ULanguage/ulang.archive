@@ -105,13 +105,14 @@ class state_t:
     # TODO: Define templated types
 
     # Pass arguments
-    for idx in range(len(call.args)): # TODO: Handle different lengths
+    for idx in range(len(fun.params)): 
       param = fun.params[idx]
-      arg = call.args[idx]
+      arg = utils.getList(call.args, idx, param.default)
       value = expr_t(('_p', self.execute(arg)))
 
       child.execute(expr_t(('def', param.name)))
       child.execute(expr_t(('set', param.name, value)))
+    #TODO: Check len(args) <= len(params)
     #TODO: Default values
     #TODO: Named params
     #TODO: Check all params have a value

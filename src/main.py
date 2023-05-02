@@ -10,17 +10,16 @@ def runProgram(prog):
 if __name__ == '__main__':
   prog = expr_t(('prog', 'test',
     ('file', 'main.u',
-      ('fun', 'print', (('param', 'S'),), 
+      ('fun', 'print', (('param', 'G', ()), ('param', 'S', ('_p', 'Sofia'))), 
         ('def', 'foo'),
         ('set', 'foo', ('_p', 'ama a')),
         ('print', ('var', 'G'), ('var', 'foo'), ('var', 'S')),
         ('return', ('_p', 'Galileo')),
       ),
-      ('set', 'G', ('call', 'print', ('_p', 'Soso'))),
       ('fun', 'main', (),
-        ('def', 'S'),
-        ('set', 'S', ('_p', 'Sofia')),
-        ('return', ('call', 'print', ('var', 'S'))),
+        ('def', 'G'),
+        ('set', 'G', ('_p', 'Galileo')),
+        ('return', ('call', 'print', ('var', 'G'), ('_p', 'Sofi'))),
       ),
     )
   ))
