@@ -2,15 +2,20 @@
 global _start
 
 section .data
-test: dq 0x5
 
 section .text
+exit:
+  mov rax, 60
+  mov rdi, 2
+  syscall
+
 _start:
 main:
-  sub rsp, 16
+  sub rsp, 8
   mov qword [rsp], 8
-  mov qword [rsp + 8], 11
+  call exit
   mov rax, 60
-  mov rdi, [rsp]
-  add rsp, 16
+  mov rdi, 1
+  add rsp, 8
   syscall
+

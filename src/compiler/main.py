@@ -6,6 +6,7 @@ class scope_t:
   def __init__(self, parent = None):
     self.parent = parent
     self.vars = dict()
+    self.funs = dict()
 
   def child(self):
     return scope_t(parent = self)
@@ -18,6 +19,8 @@ class scope_t:
     elif expr[0] == 'exit': return self.exec_exit(expr)
     elif expr[0] == 'int': return self.exec_int(expr)
     elif expr[0] == 'var': return self.exec_var(expr)
+    elif expr[0] == 'asm': return self.exec_asm(expr)
+    elif expr[0] == 'call': return self.exec_call(expr)
 
   def exec_def(self, expr):
     if self.parent is None: return self.exec_defGlobal(expr)
@@ -48,28 +51,45 @@ class scope_t:
 
   def exec_fun(self, expr):
     global Text
+    name = expr[1]
+    exprs = expr[2:]
+
+    self.addFun(expr)
 
     child = self.child()
     s = ''
     ex = '  ret'
-    for subexpr in expr[2:]:
+    for subexpr in exprs:
       s += child.exec(subexpr)
       if subexpr[0] == 'exit':
         ex = '  syscall\n'
 
-    if expr[1] == 'main':
+    if name == 'main':
       Text += '_start:\n'
-    Text += expr[1] + ':\n'
-
+    Text += name + ':\n'
     if len(child.vars) != 0:
       Text += f'  sub rsp, {len(child.vars) * 8}\n' # TODO: Based on each variable's length
-
     Text += s
-
     if len(child.vars) != 0:
       Text += f'  add rsp, {len(child.vars) * 8}\n' # TODO: Based on each variable's length
+    Text += ex + '\n'
 
-    Text += ex
+  def addFun(self, expr):
+    name = expr[1] 
+    self.funs[name] = expr # TODO: Mangle the name
+
+  def findFun(self, call):
+    # TODO: Similar to the interpreter
+    name = call[1]
+
+    if name in self.funs:
+      # TODO: Checks like in the interpreter
+      return self.funs[name]
+
+    if not self.parent is None:
+      return self.parent.findFun(call)
+
+    return None
   
   def exec_exit(self, expr):
     s = '  mov rax, 60\n'
@@ -89,13 +109,25 @@ class scope_t:
     else: # TODO: Look in parent scope
       return f'[{name}]'
 
+  def exec_asm(self, expr):
+    return expr[1]
+
+  def exec_call(self, call):
+    fun = self.findFun(call)
+    name = fun[1] # TODO: Change
+    return f'  call {name}\n'
+
 if __name__ == '__main__':
   prog = (
-    ('def', 'test', ('int', 5)),
+    ('fun', 'exit', 
+      # TODO: Params
+      # ('exit', ('var', 'exitCode')),
+      ('exit', ('int', 2)),
+    ),
     ('fun', 'main', 
-      ('def', 'ing', ('int', 8)),
-      ('def', 'asd', ('int', 11)),
-      ('exit', ('var', 'ing')),
+      ('def', 'exitCode', ('int', 8)),
+      ('call', 'exit'),
+      ('exit', ('int', 1)),
     ),
   )
 
