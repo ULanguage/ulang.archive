@@ -48,7 +48,7 @@ class state_t:
     self.funs[fun.name] = fun
 
   def exec_call(self, call):
-    fun = self.findFun(call.name) # TODO: Also callable variables
+    fun = self.findFun(call) # TODO: Also callable variables
     if fun is None:
       print('[exec_call] ERROR: No such function', call.name)
       return None #TODO: Error
@@ -84,13 +84,25 @@ class state_t:
   #************************************************************
   #* Utils ****************************************************
 
-  def findFun(self, name):
-    if name in self.funs:
-      # TODO: Also match on args and returns type 
-      return self.funs[name]
+  def findFun(self, call):
+    if call.name in self.funs:
+      fun = self.funs[call.name] # TODO: Multiple functions with the same name (but different types/args/etc)
+      matches = len(call.args) <= len(fun.params)
+
+      # Check all params have a value
+      for idx in range(len(fun.params)): 
+        param = fun.params[idx]
+        arg = utils.getList(call.args, idx, param.default)
+        matches &= arg.type != 'empty'
+
+      #TODO: Named params
+      #TODO: Check return types
+      #TODO: Check template types
+      if matches:
+        return fun
     if self.parent is None:
       return None
-    return self.parent.findFun(name)
+    return self.parent.findFun(call)
 
   def findVar(self, name):
     # TODO: Repeated code with findFun
@@ -101,8 +113,9 @@ class state_t:
     return self.parent.findVar(name)
 
   def callFun(self, call, fun):
-    child = self.sibling() # TODO: Should this be in callFun
-    # TODO: Define templated types
+    child = self.sibling()
+
+    # TODO: Define templated types in child
 
     # Pass arguments
     for idx in range(len(fun.params)): 
@@ -112,10 +125,7 @@ class state_t:
 
       child.execute(expr_t(('def', param.name)))
       child.execute(expr_t(('set', param.name, value)))
-    #TODO: Check len(args) <= len(params)
-    #TODO: Default values
     #TODO: Named params
-    #TODO: Check all params have a value
 
     for expr in fun.exprs:
       child.execute(expr)
