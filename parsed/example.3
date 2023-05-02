@@ -3,7 +3,7 @@
     (type, size_t, int64),
 
     //TODO: delete, copyInto, copy, typeof, sizeof
-    //TODO: new = &Type{}, construct = Type{}
+    //TODO: new = &Type{}, construct = Type{} //TODO: Make new not special
 
     (type, (array[], T), (struct, (
       (elements, *T, nil), //TODO: Pointer type //TODO: var keyword?
@@ -101,8 +101,8 @@
     )),
 
     (fun, main, ((args, (array[], string))), (int), (
-      (set, A, (construct, Person, (call, typeof(args), [], (args, 0), 22))), //TODO: &args? See "&name?"
-      (set, B, (construct, Person, (call, typeof(args), [], (args, 1), 21))), //TODO: &args? See "&name?"
+      (set, A, (construct, Person, ((call, typeof(args), [], (args, 0)), 22))), //TODO: &args? See "&name?"
+      (set, B, (construct, Person, ((call, typeof(args), [], (args, 1)), 21))), //TODO: &args? See "&name?"
 
       (if, (!, (call, startFamily, (A, B))), (
         (call, print, "[startFamily] Error"),
