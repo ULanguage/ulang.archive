@@ -72,7 +72,9 @@ class state_t:
 
   def setVar(self, name, newValue): # TODO: Move
     var = self.findVar(name)
-    if var.type != newValue.type:
+    if var.typeless:
+      var.type = newValue.type
+    elif var.type != newValue.type: # TODO: newValue.typeless?
       print('[exec_set] ERROR: Wrong types:', var.type, newValue.type)
     var.value = newValue.value # TODO: Or replace?
 
@@ -145,7 +147,7 @@ class state_t:
       if sib.returned:
         break
 
-    if sib.res.type != fun.retType:
+    if fun.retType != '' and sib.res.type != fun.retType:
       print('[callFun] ERROR: Wrong return type', repr(sib.res), repr(fun))
       #TODO: Error
 

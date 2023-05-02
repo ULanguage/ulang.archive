@@ -19,7 +19,7 @@ if __name__ == '__main__':
       ('fun', 'main', (), '__int',
         ('def', 'G', '__string'),
         ('set', 'G', ('__string', 'Galileo')),
-        ('def', 'res', '__int'),
+        ('def', 'res', ''),
         ('set', 'res', ('call', 'print', ('var', 'G'), ('__string', 'Sofi'))),
         ('set', 'res', ('__int', 6)),
         ('return', ('var', 'res')),

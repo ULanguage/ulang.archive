@@ -5,9 +5,10 @@ class var_t:
   def __init__(self, value, t):
     self.value = value
     self.type = t
+    self.typeless = t == ''
   
   def __repr__(self):
-    return f'var<{self.value}, {self.type}>'
+    return f'var<{self.value}, {self.type}, {self.typeless}>'
 
   def __str__(self):
     t = self.type
