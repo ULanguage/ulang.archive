@@ -24,6 +24,7 @@ class state_t:
     elif t == 'var': return self.exec_var(expr)
     elif t == 'set': return self.exec_set(expr)
     elif t == 'return': return self.exec_return(expr)
+    elif t == 'get': return self.exec_get(expr)
     # Expressions below are intrinsic types
     elif t in utils.intrinsic: return self.exec_intrinsic(expr)
     # TODO: Expressions below are only for testing
@@ -81,6 +82,17 @@ class state_t:
   def exec_return(self, expr):
     self.res = self.execute(expr.expr)
     self.returned = True
+
+  def exec_get(self, expr):
+    return self.getOver(self.execute(expr.over), expr.attr)
+
+  def getOver(self, var, attr):
+    if attr == '__type': return var.type
+    elif attr == '__typeless': return var.typeless
+    else: 
+      #TODO: Find it if it's a struct...
+      pass
+    return None
 
   #************************************************************
   #* Intrinsic types ******************************************

@@ -26,6 +26,7 @@ class expr_t:
     elif t == 'param': self.init_param()
     elif t == 'import': self.init_import()
     elif t == 'return': self.init_return()
+    elif t == 'get': self.init_get()
     # Expressions below are intrinsic types
     elif t in utils.intrinsic: self.init_intrinsic()
     # TODO: Expressions below are only for testing
@@ -94,6 +95,13 @@ class expr_t:
     expr = self._expr # Rename
     self.expr = expr_t(expr[1])
 
+  def init_get(self):
+    # (get, expr_t over, string attr)
+    # NOTE: Over must evaluate to a variable
+    expr = self._expr # Rename
+    self.over = expr_t(expr[1])
+    self.attr = expr[2]
+
   ############################################################
   # Intrinsic types ##########################################
 
@@ -131,6 +139,7 @@ class expr_t:
     elif t == 'set': parts += self.str_set()
     elif t == 'param': parts += self.str_param()
     elif t == 'return': parts += self.str_return()
+    elif t == 'get': parts += self.str_get()
     # TODO: Expressions below are only for testing
     elif t == 'print': parts += self.str_print()
     elif t in utils.intrinsic: parts += [self.value]
@@ -168,6 +177,9 @@ class expr_t:
 
   def str_return(self):
     return [self.expr] 
+
+  def str_get(self):
+    return [self.over, self.attr] 
 
   def strSubexprs(self, exprs):
     return [f'({len(exprs)}) exprs...'] #TODO: Nicer input

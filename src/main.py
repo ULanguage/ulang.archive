@@ -19,6 +19,14 @@ if __name__ == '__main__':
       ('fun', 'main', (), '__int',
         ('def', 'G', '__string'),
         ('set', 'G', ('__string', 'Galileo')),
+
+        ('def', 'A', ''),
+        ('print', ('get', ('var', 'A'), '__type'), ('get', ('var', 'A'), '__typeless')),
+        ('set', 'A', ('__string', 'asd')),
+        ('print', ('get', ('var', 'A'), '__type'), ('get', ('var', 'A'), '__typeless')),
+        ('set', 'A', ('__int', 123)),
+        ('print', ('get', ('var', 'A'), '__type'), ('get', ('var', 'A'), '__typeless')),
+
         ('def', 'res', ''),
         ('set', 'res', ('call', 'print', ('var', 'G'), ('__string', 'Sofi'))),
         ('set', 'res', ('__int', 6)),
