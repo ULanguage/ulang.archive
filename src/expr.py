@@ -5,9 +5,16 @@ class expr_t:
   # Init #####################################################
 
   def __init__(self, expr):
+    if type(expr) == expr_t: # Copy other expressions
+      for k in dir(expr):
+        if not k in dir(self):
+          self.__setattr__(k, expr.__getattribute__(k))
+      return
+
     self.expr = expr
     t = utils.getList(expr, 0, 'empty')
     self.type = t
+    # TODO: Nicer order
     if t == 'empty': pass
     elif t == 'prog': self.init_prog()
     elif t == 'file': self.init_file()
@@ -16,6 +23,7 @@ class expr_t:
     elif t == 'def': self.init_def()
     elif t == 'var': self.init_var()
     elif t == 'set': self.init_set()
+    elif t == 'param': self.init_param()
     # TODO: Expressions below are only for testing
     elif t == 'print': self.init_print()
     elif t == '_p': self.init__p()
@@ -34,16 +42,19 @@ class expr_t:
     self.exprs = [expr_t(subexpr) for subexpr in expr[2:]]
 
   def init_fun(self):
-    # (fun, string name, expr_t exprs...)
+    # (fun, string name, (expr_t params...), expr_t exprs...)
+    # TODO: Named params
     expr = self.expr # Rename
     self.name = expr[1]
-    self.exprs = [expr_t(subexpr) for subexpr in expr[2:]]
+    self.params = [expr_t(subexpr) for subexpr in expr[2]]
+    self.exprs = [expr_t(subexpr) for subexpr in expr[3:]]
 
   def init_call(self):
-    # (call, string name)
-    # TODO: Args
+    # (call, string name, expr_t args...)
+    # TODO: Named args
     expr = self.expr # Rename
     self.name = expr[1]
+    self.args = [expr_t(subexpr) for subexpr in expr[2:]]
 
   def init_def(self):
     # (def, string name)
@@ -63,6 +74,13 @@ class expr_t:
     expr = self.expr # Rename
     self.varname = expr[1]
     self.expr = expr_t(expr[2])
+
+  def init_param(self):
+    # (param, string name)
+    # TODO: Type
+    # TODO: Default value
+    expr = self.expr # Rename
+    self.name = expr[1]
 
   ############################################################
   # Testing exprs ############################################
@@ -87,6 +105,7 @@ class expr_t:
   def __str__(self):
     parts = [self.type]
     t = self.type
+    # TODO: Nicer order (same as __init__)
     if t == 'empty': parts = [] # Special case
     elif t == 'prog': parts += self.str_prog()
     elif t == 'file': parts += self.str_file()
@@ -95,6 +114,7 @@ class expr_t:
     elif t == 'def': parts += self.str_def()
     elif t == 'var': parts += self.str_var()
     elif t == 'set': parts += self.str_set()
+    elif t == 'param': parts += self.str_param()
     # TODO: Expressions below are only for testing
     elif t == 'print': parts += self.str_print()
     elif t == '_p': parts += self.str__p()
@@ -110,11 +130,13 @@ class expr_t:
     return [self.path] + exprs
 
   def str_fun(self):
+    params = '(' + ', '.join([str(param) for param in self.params]) + ')' # TODO: Repeated code
     exprs = self.strSubexprs(self.exprs)
-    return [self.name] + exprs
+    return [self.name, params] + exprs
 
   def str_call(self):
-    return [self.name]
+    args = '(' + ', '.join([str(arg) for arg in self.args]) + ')' # TODO: Repeated code
+    return [self.name, args]
 
   def str_def(self):
     return [self.name]
@@ -125,5 +147,9 @@ class expr_t:
   def str_set(self):
     return [self.varname, self.expr] 
 
+  def str_param(self):
+    return [self.name] 
+
   def strSubexprs(self, exprs):
-    return exprs if input(f'Show ({len(exprs)}) subexprs for {self.type} [Y/n] ').lower() not in ['n', 'no'] else [f'({len(exprs)}) exprs...']
+    return [f'({len(exprs)}) exprs...'] #TODO: Nicer input
+    # return exprs if input(f'Show ({len(exprs)}) subexprs for {self.type} [Y/n] ').lower() not in ['n', 'no'] else [f'({len(exprs)}) exprs...']

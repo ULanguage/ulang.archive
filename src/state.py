@@ -48,9 +48,7 @@ class state_t:
     if fun is None:
       return None #TODO: Error
 
-    child = self.child() # TODO: Should this be in callFun
-    # TODO: Define templated types
-    return child.callFun(fun)
+    return self.callFun(call, fun)
 
   def exec_def(self, expr):
     # TODO: Check it doesn't exist or error
@@ -73,15 +71,6 @@ class state_t:
     return expr.value
 
   #************************************************************
-  #* Testing exprs ********************************************
-
-  def exec_print(self, expr):
-    print(' '.join([str(self.execute(subexpr)) for subexpr in expr.exprs]))
-
-  def exec__p(self, expr):
-    return expr.value
-
-  #************************************************************
   #* Utils ****************************************************
 
   def findFun(self, name):
@@ -92,10 +81,32 @@ class state_t:
       return None
     return self.parent.findFun(name)
 
-  def callFun(self, fun):
+  def callFun(self, call, fun):
+    # print('[callFun]', call, fun)
+    child = self.child() # TODO: Should this be in callFun
+    # TODO: Define templated types
+
+    # Pass arguments
+    for idx in range(len(call.args)): # TODO: Handle different lengths
+      param = fun.params[idx]
+      arg = call.args[idx]
+      value = expr_t(('_p', self.execute(arg)))
+
+      child.execute(expr_t(('def', param.name)))
+      child.execute(expr_t(('set', param.name, value)))
+    # print(self)
+    # print(child)
+    #TODO: Default values
+    #TODO: Named params
+    #TODO: Check all params have a value
     for expr in fun.exprs:
       self.execute(expr)
     #TODO: Return
 
   def child(self):
     return state_t(parent = self)
+
+  def __repr__(self):
+    return str(self)
+  def __str__(self):
+    return f'state<{self.funs}, {self.vars}>'
