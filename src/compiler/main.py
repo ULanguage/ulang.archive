@@ -121,7 +121,7 @@ class scope_t:
     name = expr[1]
     if name in self.vars:
       t, offset = self.vars[name]
-      reg = 'rsp' if t == 'var' else 'rbp'
+      reg = 'rsp' if t == 'def' else 'rbp'
       if offset == 0: return f'[{reg}]'
       else: return f'[{reg} + {offset}]'
     else: # TODO: Look in parent scope
@@ -133,7 +133,14 @@ class scope_t:
   def exec_call(self, call):
     fun = self.findFun(call)
     name = fun[1] # TODO: Change
-    return f'  call {name}\n'
+    args = call[2:]
+
+    s = ''
+    for arg in reversed(args):
+      s += f'  push qword {self.exec(arg)}\n' # TODO: qword based ons ize
+    s += f'  call {name}\n'
+
+    return s
 
 if __name__ == '__main__':
   prog = (
@@ -145,7 +152,7 @@ if __name__ == '__main__':
     ('fun', 'main', (),
       ('def', 'exitCode', ('int', 5)),
       ('def', 'test', ('int', 6)),
-      ('call', 'exit'), # TODO: pass int or exitCode
+      ('call', 'exit', ('var', 'exitCode')), # TODO: pass int or exitCode
       ('exit', ('int', 1)),
     ),
   )

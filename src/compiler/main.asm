@@ -21,9 +21,9 @@ main:
   push rbp
   mov rbp, rsp
   sub rsp, 16
-  mov qword [rsp], 5
+  mov qword [rsp], 99
   mov qword [rsp + 8], 6
-  push 4
+  push qword [rsp]
   call exit
   mov rax, 60
   mov rdi, 1
