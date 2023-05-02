@@ -11,6 +11,8 @@ class state_t:
     self.returned = False
 
   def execute(self, expr):
+    # print('[state_t.execute]', expr) # TODO: Print current state # TODO: Arg to debug or not
+
     t = expr.type
     if t == 'empty': pass
     elif t == 'prog': return self.exec_prog(expr)
@@ -29,7 +31,7 @@ class state_t:
     return None
 
   def exec_prog(self, prog):
-    print(f'Running {prog.name}')
+    # print(f'Running {prog.name}')
     file = utils.findMainFile(prog)
     if file is None:
       return None # TODO: Error
@@ -39,10 +41,8 @@ class state_t:
     return child.execute(expr_t(('call', 'main'))) # TODO: Args
 
   def exec_file(self, file):
-    for t in ['fun']: # Execute them in order such that functions are defined first #TODO: Full order
-      for expr in file.exprs:
-        if expr.type == t:
-          self.execute(expr)
+    for expr in file.exprs: # TODO: Execute in order based on type of expression, such that all functions are defined before all variables?
+      self.execute(expr)
 
   def exec_fun(self, fun):
     self.funs[fun.name] = fun
@@ -59,8 +59,10 @@ class state_t:
     self.vars[expr.name] = None
 
   def exec_var(self, var):
-    # TODO: Check it exists or error
-    return self.vars[var.name]
+    value = self.findVar(var.name)
+    if value is None:
+      return None #TODO: Error
+    return value
 
   def exec_set(self, expr):
     self.vars[expr.varname] = self.execute(expr.expr)
@@ -89,8 +91,16 @@ class state_t:
       return None
     return self.parent.findFun(name)
 
+  def findVar(self, name):
+    # TODO: Repeated code with findFun
+    if name in self.vars:
+      return self.vars[name]
+    if self.parent is None:
+      return None
+    return self.parent.findVar(name)
+
   def callFun(self, call, fun):
-    child = self.child() # TODO: Should this be in callFun
+    child = self.sibling() # TODO: Should this be in callFun
     # TODO: Define templated types
 
     # Pass arguments
@@ -113,6 +123,8 @@ class state_t:
 
   def child(self):
     return state_t(parent = self)
+  def sibling(self):
+    return state_t(parent = self.parent)
 
   def __repr__(self):
     return str(self)
