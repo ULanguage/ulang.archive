@@ -24,9 +24,10 @@ class state_t:
     elif t == 'var': return self.exec_var(expr)
     elif t == 'set': return self.exec_set(expr)
     elif t == 'return': return self.exec_return(expr)
+    # Expressions below are intrinsic types
+    elif t in utils.intrinsic: return self.exec_intrinsic(expr)
     # TODO: Expressions below are only for testing
     elif t == 'print': return self.exec_print(expr)
-    elif t == '_p': return self.exec__p(expr)
     else: print('[state_t.execute] Type not implemented:', t)
 
     return None
@@ -80,13 +81,16 @@ class state_t:
     self.returned = True
 
   #************************************************************
+  #* Intrinsic types ******************************************
+
+  def exec_intrinsic(self, expr):
+    return var_t(expr.value, expr.type)
+
+  #************************************************************
   #* Testing exprs ********************************************
 
   def exec_print(self, expr):
     print(' '.join([str(self.execute(subexpr)) for subexpr in expr.exprs]))
-
-  def exec__p(self, expr):
-    return var_t(expr.value, '_p')#str(type(expr.value))) #TODO: Type
 
   #************************************************************
   #* Utils ****************************************************

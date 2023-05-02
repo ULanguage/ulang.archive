@@ -7,3 +7,5 @@ def findMainFile(prog):
       if fun.type == 'fun' and fun.name == 'main':
         return file
   return None
+
+intrinsic = ['__string', '__int']

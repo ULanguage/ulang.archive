@@ -26,9 +26,10 @@ class expr_t:
     elif t == 'param': self.init_param()
     elif t == 'import': self.init_import()
     elif t == 'return': self.init_return()
+    # Expressions below are intrinsic types
+    elif t in utils.intrinsic: self.init_intrinsic()
     # TODO: Expressions below are only for testing
     elif t == 'print': self.init_print()
-    elif t == '_p': self.init__p()
     else: print('[expr_t.__init__] Type not implemented:', t)
 
   def init_prog(self):
@@ -93,19 +94,22 @@ class expr_t:
     self.expr = expr_t(expr[1])
 
   ############################################################
+  # Intrinsic types ##########################################
+
+  def init_intrinsic(self):
+    self.value = self._expr[1]
+
+  def str_intrinsic(self):
+    return [self.value]
+
+  ############################################################
   # Testing exprs ############################################
 
   def init_print(self):
     self.exprs = [expr_t(subexpr) for subexpr in self._expr[1:]]
 
-  def init__p(self):
-    self.value = self._expr[1]
-
   def str_print(self):
     return self.strSubexprs(self.exprs)
-
-  def str__p(self):
-    return [self.value]
 
   ############################################################
   # Printing #################################################
@@ -128,7 +132,7 @@ class expr_t:
     elif t == 'return': parts += self.str_return()
     # TODO: Expressions below are only for testing
     elif t == 'print': parts += self.str_print()
-    elif t == '_p': parts += self.str__p()
+    elif t in utils.intrinsic: parts += [self.value]
 
     return '(' + ', '.join([str(part) for part in parts]) + ')'
 
