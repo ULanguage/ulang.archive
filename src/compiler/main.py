@@ -21,10 +21,14 @@ class scope_t:
     elif expr[0] == 'var': return self.exec_var(expr)
     elif expr[0] == 'asm': return self.exec_asm(expr)
     elif expr[0] == 'call': return self.exec_call(expr)
+    elif expr[0] == 'param': return self.exec_param(expr)
 
   def exec_def(self, expr):
     if self.parent is None: return self.exec_defGlobal(expr)
     else: return self.exec_defLocal(expr)
+
+  def exec_param(self, expr):
+    return self.addVar(expr)
 
   def exec_defGlobal(self, expr):
     global Data
@@ -33,46 +37,58 @@ class scope_t:
     Data += f'{name}: dq {hex(value)}\n' # TODO: dq based on type
 
   def addVar(self, var):
-    name, _ = var[1:3]
-    offset = len(self.vars) * 8 # TODO: Based on variable type
-    self.vars[name] = offset
-    return offset
+    t = var[0]
+    name = var[1]
+    l = len([_v[0] for _v in self.vars.values() if _v[0] == t])
+    offset = (l + 2 * int(t == 'param')) * 8 # TODO: Based on variable type
+    self.vars[name] = (t, offset)
+    return (t, offset)
 
   def exec_defLocal(self, expr):
     name = expr[1]
     value = self.exec(expr[2])
 
     s = ''
-    offset = self.addVar(expr)
-    if offset == 0: s = f'  mov qword [rsp], {value}\n' # TODO: qword depending on variable type
-    else: s = f'  mov qword [rsp + {offset}], {value}\n'
+    t, offset = self.addVar(expr)
+    reg = 'rsp' if t == 'def' else 'rbp'
+
+    if offset == 0: s = f'  mov qword [{reg}], {value}\n' # TODO: qword depending on variable type
+    else: s = f'  mov qword [{reg} + {offset}], {value}\n'
 
     return s
 
   def exec_fun(self, expr):
     global Text
     name = expr[1]
-    exprs = expr[2:]
+    params = expr[2]
+    exprs = expr[3:]
 
     self.addFun(expr)
 
     child = self.child()
     s = ''
-    ex = '  ret'
+
+    for param in params:
+      print(param)
+      child.exec(param)
+
     for subexpr in exprs:
       s += child.exec(subexpr)
-      if subexpr[0] == 'exit':
-        ex = '  syscall\n'
+
+    l = len([_v[0] for _v in child.vars.values() if _v[0] == 'def'])
 
     if name == 'main':
       Text += '_start:\n'
     Text += name + ':\n'
-    if len(child.vars) != 0:
-      Text += f'  sub rsp, {len(child.vars) * 8}\n' # TODO: Based on each variable's length
+    Text += '  push rbp\n'
+    Text += '  mov rbp, rsp\n'
+    if l != 0:
+      Text += f'  sub rsp, {l * 8}\n' # TODO: Based on each variable's length
     Text += s
-    if len(child.vars) != 0:
-      Text += f'  add rsp, {len(child.vars) * 8}\n' # TODO: Based on each variable's length
-    Text += ex + '\n'
+    if l != 0:
+      Text += f'  add rsp, {l * 8}\n' # TODO: Based on each variable's length
+    Text += '  pop rbp\n'
+    Text += '  ret\n\n'
 
   def addFun(self, expr):
     name = expr[1] 
@@ -95,6 +111,7 @@ class scope_t:
     s = '  mov rax, 60\n'
     value = self.exec(expr[1])
     s += f'  mov rdi, {value}\n'
+    s += '  syscall\n'
     return s
 
   def exec_int(self, expr):
@@ -103,9 +120,10 @@ class scope_t:
   def exec_var(self, expr):
     name = expr[1]
     if name in self.vars:
-      offset = self.vars[name]
-      if offset == 0: return '[rsp]'
-      else: return f'[rsp + {offset}]'
+      t, offset = self.vars[name]
+      reg = 'rsp' if t == 'var' else 'rbp'
+      if offset == 0: return f'[{reg}]'
+      else: return f'[{reg} + {offset}]'
     else: # TODO: Look in parent scope
       return f'[{name}]'
 
@@ -119,14 +137,15 @@ class scope_t:
 
 if __name__ == '__main__':
   prog = (
-    ('fun', 'exit', 
+    ('fun', 'exit', (('param', 'exitCode'),),
       # TODO: Params
-      # ('exit', ('var', 'exitCode')),
+      ('exit', ('var', 'exitCode')),
       ('exit', ('int', 2)),
     ),
-    ('fun', 'main', 
-      ('def', 'exitCode', ('int', 8)),
-      ('call', 'exit'),
+    ('fun', 'main', (),
+      ('def', 'exitCode', ('int', 5)),
+      ('def', 'test', ('int', 6)),
+      ('call', 'exit'), # TODO: pass int or exitCode
       ('exit', ('int', 1)),
     ),
   )
