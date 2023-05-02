@@ -7,6 +7,9 @@ class state_t:
     self.funs = dict()
     self.vars = dict()
 
+    self.res = None
+    self.returned = False
+
   def execute(self, expr):
     t = expr.type
     if t == 'empty': pass
@@ -17,6 +20,7 @@ class state_t:
     elif t == 'def': return self.exec_def(expr)
     elif t == 'var': return self.exec_var(expr)
     elif t == 'set': return self.exec_set(expr)
+    elif t == 'return': return self.exec_return(expr)
     # TODO: Expressions below are only for testing
     elif t == 'print': return self.exec_print(expr)
     elif t == '_p': return self.exec__p(expr)
@@ -61,6 +65,10 @@ class state_t:
   def exec_set(self, expr):
     self.vars[expr.varname] = self.execute(expr.expr)
 
+  def exec_return(self, expr):
+    self.res = self.execute(expr.expr)
+    self.returned = True
+
   #************************************************************
   #* Testing exprs ********************************************
 
@@ -82,7 +90,6 @@ class state_t:
     return self.parent.findFun(name)
 
   def callFun(self, call, fun):
-    # print('[callFun]', call, fun)
     child = self.child() # TODO: Should this be in callFun
     # TODO: Define templated types
 
@@ -94,14 +101,15 @@ class state_t:
 
       child.execute(expr_t(('def', param.name)))
       child.execute(expr_t(('set', param.name, value)))
-    # print(self)
-    # print(child)
     #TODO: Default values
     #TODO: Named params
     #TODO: Check all params have a value
+
     for expr in fun.exprs:
       self.execute(expr)
-    #TODO: Return
+      if self.returned:
+        break
+    return self.res
 
   def child(self):
     return state_t(parent = self)
