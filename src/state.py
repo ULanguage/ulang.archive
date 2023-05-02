@@ -12,7 +12,7 @@ class state_t:
     self.returned = False
 
   def execute(self, expr):
-    print('[execute]', self, expr) # TODO: Print current state # TODO: Arg to debug or not
+    # print('[execute]', self, expr) # TODO: Print current state # TODO: Arg to debug or not
 
     t = expr.type
     if t == 'empty': pass
@@ -67,11 +67,13 @@ class state_t:
     return res
 
   def exec_set(self, expr):
-    var = self.findVar(expr.varname)
-    newValue = self.execute(expr.expr)
+    self.setVar(expr.varname, self.execute(expr.expr))
+
+  def setVar(self, name, newValue): # TODO: Move
+    var = self.findVar(name)
     if var.type != newValue.type:
       print('[exec_set] ERROR: Wrong types:', var.type, newValue.type)
-    var.value = newValue
+    var.value = newValue.value # TODO: Or replace?
 
   def exec_return(self, expr):
     self.res = self.execute(expr.expr)
@@ -119,7 +121,7 @@ class state_t:
     return self.parent.findVar(name)
 
   def callFun(self, call, fun):
-    child = self.sibling()
+    sib = self.sibling()
 
     # TODO: Define templated types in child
 
@@ -127,17 +129,18 @@ class state_t:
     for idx in range(len(fun.params)): 
       param = fun.params[idx]
       arg = utils.getList(call.args, idx, param.default)
-      value = expr_t(('_p', self.execute(arg)))
+      value = self.execute(arg)
 
-      child.execute(expr_t(('def', param.name)))
-      child.execute(expr_t(('set', param.name, value)))
+      sib.execute(expr_t(('def', param.name, param.varType)))
+      # sib.execute(expr_t(('set', param.name, arg)))
+      sib.setVar(param.name, value)
     #TODO: Named params
 
     for expr in fun.exprs:
-      child.execute(expr)
-      if child.returned:
+      sib.execute(expr)
+      if sib.returned:
         break
-    return child.res
+    return sib.res
 
   def child(self):
     return state_t(parent = self)

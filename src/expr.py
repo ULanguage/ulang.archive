@@ -78,11 +78,13 @@ class expr_t:
     self.expr = expr_t(expr[2])
 
   def init_param(self):
-    # (param, string name, expr_t default)
+    # (param, string name, string type, expr_t default)
     # TODO: Type
     expr = self._expr # Rename
     self.name = expr[1]
-    self.default = expr_t(expr[2])
+    self.varType = expr[2]
+    self.default = expr_t(expr[3])
+    # TODO: Check default has correct type
 
   def init_return(self):
     # (return, expr_t res)
@@ -157,7 +159,7 @@ class expr_t:
     return [self.varname, self.expr] 
 
   def str_param(self):
-    return [self.name, self.default] 
+    return [self.name, self.varType, self.default] 
 
   def str_return(self):
     return [self.expr] 
