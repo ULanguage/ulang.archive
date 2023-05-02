@@ -27,6 +27,9 @@ class expr_t:
     elif t == 'import': self.init_import()
     elif t == 'return': self.init_return()
     elif t == 'get': self.init_get()
+    elif t == 'setattr': self.init_setattr()
+    elif t == 'typedef': self.init_typedef()
+    elif t == 'struct': self.init_struct()
     # Expressions below are intrinsic types
     elif t in utils.intrinsic: self.init_intrinsic()
     # TODO: Expressions below are only for testing
@@ -102,6 +105,27 @@ class expr_t:
     self.over = expr_t(expr[1])
     self.attr = expr[2]
 
+  def init_setattr(self):
+    # (setattr, expr_t over, string attr, expr_t to)
+    # NOTE: Over must evaluate to a variable
+    expr = self._expr # Rename
+    self.over = expr_t(expr[1])
+    self.attr = expr[2] # TODO: Could this also be an expression?
+    self.to = expr_t(expr[3])
+
+  def init_typedef(self):
+    # (typedef, string name, expr_t struct)
+    # TODO: redef
+    expr = self._expr # Rename
+    self.name = expr[1]
+    self.struct = expr_t(expr[2])
+
+  def init_struct(self):
+    # (struct, expr_t attrs...)
+    # NOTE: All attrs must evaluate to a param
+    expr = self._expr # Rename
+    self.attrs = [expr_t(subexpr) for subexpr in expr[1:]]
+
   ############################################################
   # Intrinsic types ##########################################
 
@@ -140,6 +164,9 @@ class expr_t:
     elif t == 'param': parts += self.str_param()
     elif t == 'return': parts += self.str_return()
     elif t == 'get': parts += self.str_get()
+    elif t == 'setattr': parts += self.str_setattr()
+    elif t == 'typedef': parts += self.str_typedef()
+    elif t == 'struct': parts += self.str_struct()
     # TODO: Expressions below are only for testing
     elif t == 'print': parts += self.str_print()
     elif t in utils.intrinsic: parts += [self.value]
@@ -180,6 +207,15 @@ class expr_t:
 
   def str_get(self):
     return [self.over, self.attr] 
+
+  def str_setattr(self):
+    return [self.over, self.attr, self.to] 
+
+  def str_typedef(self):
+    return [self.name, self.struct] 
+
+  def str_struct(self):
+    return self.attrs
 
   def strSubexprs(self, exprs):
     return [f'({len(exprs)}) exprs...'] #TODO: Nicer input

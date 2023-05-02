@@ -1,5 +1,6 @@
 from expr import expr_t
 from var import var_t
+from struct import struct_t
 import utils
 
 class state_t:
@@ -7,6 +8,7 @@ class state_t:
     self.parent = parent
     self.funs = dict()
     self.vars = dict()
+    self.types = dict()
 
     self.res = None
     self.returned = False
@@ -25,6 +27,9 @@ class state_t:
     elif t == 'set': return self.exec_set(expr)
     elif t == 'return': return self.exec_return(expr)
     elif t == 'get': return self.exec_get(expr)
+    elif t == 'setattr': return self.exec_setattr(expr)
+    elif t == 'typedef': return self.exec_typedef(expr)
+    elif t == 'struct': return self.exec_struct(expr)
     # Expressions below are intrinsic types
     elif t in utils.intrinsic: return self.exec_intrinsic(expr)
     # TODO: Expressions below are only for testing
@@ -60,7 +65,13 @@ class state_t:
 
   def exec_def(self, expr):
     # TODO: Check it doesn't exist or error
-    self.vars[expr.name] = var_t(None, expr.varType) # TODO: Default value
+    struct = self.findType(expr.varType)
+    if struct is None:
+      print('[exec_def] ERROR: Type doesn\'t exist', expr.varType)
+    elif struct in utils.intrinsic or struct == '':
+      self.vars[expr.name] = var_t(None, struct) # TODO: Default value
+    else:
+      self.vars[expr.name] = var_t(None, self.execute(struct)) # TODO: Default value
 
   def exec_var(self, var):
     res = self.findVar(var.name)
@@ -73,6 +84,7 @@ class state_t:
 
   def setVar(self, name, newValue): # TODO: Move
     var = self.findVar(name)
+    var.type = newValue.type
     if var.typeless:
       var.type = newValue.type
     elif var.type != newValue.type: # TODO: newValue.typeless?
@@ -86,13 +98,28 @@ class state_t:
   def exec_get(self, expr):
     return self.getOver(self.execute(expr.over), expr.attr)
 
-  def getOver(self, var, attr):
+  def getOver(self, var, attr): # TODO: Move
     if attr == '__type': return var.type
     elif attr == '__typeless': return var.typeless
-    else: 
-      #TODO: Find it if it's a struct...
-      pass
-    return None
+    elif var.type in utils.intrinsic: return None # TODO: Error
+    return var.type.get(attr)
+
+  def exec_setattr(self, expr):
+    return self.setAttrOver(self.execute(expr.over), expr.attr, self.execute(expr.to))
+
+  def setAttrOver(self, var, attr, to): # TODO: Move
+    if attr in ['__type', '__typeless']:
+      return None # TODO: ERROR
+    elif var.type in utils.intrinsic:
+      return None # TODO: Error
+    var.type.set(attr, to)
+
+  def exec_typedef(self, expr):
+    # TODO: Typerename
+    self.types[expr.name] = expr.struct
+
+  def exec_struct(self, expr):
+    return struct_t(expr.attrs)
 
   #************************************************************
   #* Intrinsic types ******************************************
@@ -137,6 +164,17 @@ class state_t:
     if self.parent is None:
       return None
     return self.parent.findVar(name)
+
+  def findType(self, name):
+    # TODO: Repeated code with findFun
+    if name in utils.intrinsic or name == '': # TODO: Should '' be intrinsic
+      return name
+
+    if name in self.types:
+      return self.types[name]
+    if self.parent is None:
+      return None
+    return self.parent.findType(name)
 
   def callFun(self, call, fun):
     sib = self.sibling()
