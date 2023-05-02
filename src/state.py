@@ -5,6 +5,7 @@ class state_t:
   def __init__(self, parent = None):
     self.parent = parent
     self.funs = dict()
+    self.vars = dict()
 
   def execute(self, expr):
     t = expr.type
@@ -13,6 +14,9 @@ class state_t:
     elif t == 'file': return self.exec_file(expr)
     elif t == 'fun': return self.exec_fun(expr)
     elif t == 'call': return self.exec_call(expr)
+    elif t == 'def': return self.exec_def(expr)
+    elif t == 'var': return self.exec_var(expr)
+    elif t == 'set': return self.exec_set(expr)
     # TODO: Expressions below are only for testing
     elif t == 'print': return self.exec_print(expr)
     elif t == '_p': return self.exec__p(expr)
@@ -48,6 +52,26 @@ class state_t:
     # TODO: Define templated types
     return child.callFun(fun)
 
+  def exec_def(self, expr):
+    # TODO: Check it doesn't exist or error
+    self.vars[expr.name] = None
+
+  def exec_var(self, var):
+    # TODO: Check it exists or error
+    return self.vars[var.name]
+
+  def exec_set(self, expr):
+    self.vars[expr.varname] = self.execute(expr.expr)
+
+  #************************************************************
+  #* Testing exprs ********************************************
+
+  def exec_print(self, expr):
+    print(' '.join([str(self.execute(subexpr)) for subexpr in expr.exprs]))
+
+  def exec__p(self, expr):
+    return expr.value
+
   #************************************************************
   #* Testing exprs ********************************************
 
@@ -61,9 +85,9 @@ class state_t:
   #* Utils ****************************************************
 
   def findFun(self, name):
-    for funName, fun in self.funs.items():
-      if funName == name: # TODO: Also match on args and returns type 
-        return fun
+    if name in self.funs:
+      # TODO: Also match on args and returns type 
+      return self.funs[name]
     if self.parent is None:
       return None
     return self.parent.findFun(name)

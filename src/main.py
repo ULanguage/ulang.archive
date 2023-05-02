@@ -7,12 +7,14 @@ def runProgram(prog):
   state.execute(prog)
 
 if __name__ == '__main__':
-  prog = expr_t(('prog', 'test', (
-    ('file', 'main.u', (
-      ('fun', 'main', (
-        ('print', ('_p', 1))
-      ))
-    ))
-  )))
+  prog = expr_t(('prog', 'test',
+    ('file', 'main.u',
+      ('fun', 'main', 
+        ('def', 'Name'),
+        ('set', 'Name', ('_p', 'Galileo')),
+        ('print', ('var', 'Name'), ('var', 'Name'))
+      )
+    )
+  ))
 
   runProgram(prog)
