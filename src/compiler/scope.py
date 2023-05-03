@@ -161,7 +161,10 @@ class scope_t:
     if B[0] == 'call':
       to = 'rax'
       s += self.exec(B)
-      print('asads', B, s)
+    elif B[0] == 'var':
+      # TODO: Actually depends on where both vars are stored
+      to = 'r8' # TODO: Alloc a register
+      s += f'  mov qword {to}, {self.exec(B)}\n' # TODO: qword depends on type
     else: to = self.exec(B)
       
     var = self.exec(expr[1])

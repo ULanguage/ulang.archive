@@ -24,8 +24,8 @@ test:
   push rbp
   mov rbp, rsp
 
-  ; ('return', ('int64', 7))
-  mov qword rax, 7
+  ; ('return', ('int64', 3))
+  mov qword rax, 3
   jmp .__ret
 
   ; Remove the stack frame
@@ -42,22 +42,21 @@ main:
 
   ; ('def', 'ing', 'int64')
 
-  ; ('set', ('var', 'ing'), ('int64', 3))
-  mov qword [rsp + 0], 3
+  ; ('set', ('var', 'ing'), ('int64', 1))
+  mov qword [rsp + 0], 1
 
   ; ('set', ('var', 'ing'), ('call', 'test'))
   call test
   mov qword [rsp + 0], rax
 
-  ; ('call', 'exit', ('var', 'ing'))
-  push qword [rsp + 0]
-  call exit
-  add rsp, 8
-
   ; ('def', '__exitCode', 'int64')
 
-  ; ('set', ('var', '__exitCode'), ('int64', 3))
-  mov qword [rsp + 8], 3
+  ; ('set', ('var', '__exitCode'), ('int64', 1))
+  mov qword [rsp + 8], 1
+
+  ; ('set', ('var', '__exitCode'), ('var', 'ing'))
+  mov qword r8, [rsp + 0]
+  mov qword [rsp + 8], r8
 
   ; ('call', 'exit', ('var', '__exitCode'))
   push qword [rsp + 8]

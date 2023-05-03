@@ -8,18 +8,17 @@ if __name__ == '__main__':
     ),
 
     ('fun', 'test', (), 'int64',
-      ('return', ('int64', 7)),
+      ('return', ('int64', 3)),
     ),
 
     ('fun', 'main', (), 'int64',
       ('def', 'ing', 'int64'),
-      ('set', ('var', 'ing'), ('int64', 3)),
+      ('set', ('var', 'ing'), ('int64', 1)),
       ('set', ('var', 'ing'), ('call', 'test')),
 
-      ('call', 'exit', ('var', 'ing')),
-
       ('def', '__exitCode', 'int64'),
-      ('set', ('var', '__exitCode'), ('int64', 3)),
+      ('set', ('var', '__exitCode'), ('int64', 1)),
+      ('set', ('var', '__exitCode'), ('var', 'ing')),
       ('call', 'exit', ('var', '__exitCode')),
     ),
   )
