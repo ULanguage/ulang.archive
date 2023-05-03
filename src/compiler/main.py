@@ -2,6 +2,17 @@ Res = ';;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\nglobal _sta
 Data = '\nsection .data\n'
 Text = '\nsection .text\n'
 
+class var_t:
+  def __init__(self, t, reg, offset):
+    self.type = t
+    self.reg = reg
+    self.offset = offset 
+
+  def reference(self):
+    reg, offset = self.reg, self.offset # Rename
+    if reg == 'global': return f'[{offset}]'
+    else: return f'[{reg} + {offset}]'
+
 class scope_t:
   def __init__(self, parent = None):
     self.parent = parent
@@ -22,40 +33,41 @@ class scope_t:
     elif expr[0] == 'asm': return self.exec_asm(expr)
     elif expr[0] == 'call': return self.exec_call(expr)
     elif expr[0] == 'param': return self.exec_param(expr)
+    elif expr[0] == 'set': return self.exec_set(expr)
 
   def exec_def(self, expr):
-    if self.parent is None: return self.exec_defGlobal(expr)
-    else: return self.exec_defLocal(expr)
+    # TODO: Check not already defined
+    exprT = expr[0]
+    name = expr[1] # TODO: Mangle names
+    var = self.addVar(exprT, name)
+
+    if var.reg == 'global':
+      global Data
+      Data += f'\n  ; {expr}\n'
+      Data += f'{name}: dq {var.value}\n' # TODO: dq based on type
+    else:
+      value = self.exec(expr[2])
+      return f'  mov qword [{var.reg} + {var.offset}], {value}\n' # TODO: qword based on type
 
   def exec_param(self, expr):
-    return self.addVar(expr)
+    exprT = expr[0]
+    name = expr[1] # TODO: Mangle names
+    return self.addVar(exprT, name) # TODO: Different from exec_def? Only for now because of default values, and because can replace global vars
 
-  def exec_defGlobal(self, expr):
-    global Data
-    name = expr[1] # TODO: Mangle global names
-    value = self.exec(expr[2])
-    Data += f'{name}: dq {hex(value)}\n' # TODO: dq based on type
+  def addVar(self, exprT, name):
+    var = None
+    if self.parent is None:
+      var = var_t('int', 'global', name) # TODO: Type
+    else:
+      reg = 'rsp' if exprT == 'def' else 'rbp'
 
-  def addVar(self, var):
-    t = var[0]
-    name = var[1]
-    l = len([_v[0] for _v in self.vars.values() if _v[0] == t])
-    offset = (l + 2 * int(t == 'param')) * 8 # TODO: Based on variable type
-    self.vars[name] = (t, offset)
-    return (t, offset)
+      l = len(self.varsOfPlace(reg))
+      offset = (l + 2 * int(exprT == 'param')) * 8
 
-  def exec_defLocal(self, expr):
-    name = expr[1]
-    value = self.exec(expr[2])
+      var = var_t('int', reg, offset) # TODO: Type
 
-    s = ''
-    t, offset = self.addVar(expr)
-    reg = 'rsp' if t == 'def' else 'rbp'
-
-    if offset == 0: s = f'  mov qword [{reg}], {value}\n' # TODO: qword depending on variable type
-    else: s = f'  mov qword [{reg} + {offset}], {value}\n'
-
-    return s
+    self.vars[name] = var
+    return var
 
   def exec_fun(self, expr):
     global Text
@@ -69,22 +81,27 @@ class scope_t:
     s = ''
 
     for param in params:
-      print(param)
       child.exec(param)
 
     for subexpr in exprs:
+      s += f'\n  ; {subexpr}\n'
       s += child.exec(subexpr)
 
-    l = len([_v[0] for _v in child.vars.values() if _v[0] == 'def'])
-
+    # TODO: Comment with signature
     if name == 'main':
       Text += '_start:\n'
     Text += name + ':\n'
+    Text += '  ; Set the stack frame\n'
     Text += '  push rbp\n'
     Text += '  mov rbp, rsp\n'
+
+    l = len(child.varsOfPlace('rsp'))
     if l != 0:
-      Text += f'  sub rsp, {l * 8}\n' # TODO: Based on each variable's length
+      Text += f'  sub rsp, {l * 8} ; {l} stack vars\n' # TODO: Based on each variable's length
+
     Text += s
+
+    Text += '\n  ; Remove the stack frame\n'
     if l != 0:
       Text += f'  add rsp, {l * 8}\n' # TODO: Based on each variable's length
     Text += '  pop rbp\n'
@@ -94,19 +111,6 @@ class scope_t:
     name = expr[1] 
     self.funs[name] = expr # TODO: Mangle the name
 
-  def findFun(self, call):
-    # TODO: Similar to the interpreter
-    name = call[1]
-
-    if name in self.funs:
-      # TODO: Checks like in the interpreter
-      return self.funs[name]
-
-    if not self.parent is None:
-      return self.parent.findFun(call)
-
-    return None
-  
   def exec_exit(self, expr):
     s = '  mov rax, 60\n'
     value = self.exec(expr[1])
@@ -118,14 +122,12 @@ class scope_t:
     return expr[1]
 
   def exec_var(self, expr):
-    name = expr[1]
-    if name in self.vars:
-      t, offset = self.vars[name]
-      reg = 'rsp' if t == 'def' else 'rbp'
-      if offset == 0: return f'[{reg}]'
-      else: return f'[{reg} + {offset}]'
-    else: # TODO: Look in parent scope
-      return f'[{name}]'
+    name = expr[0]
+    var = self.findVar(expr)
+    if var is None:
+      # TODO: Error
+      return None
+    return var.reference()
 
   def exec_asm(self, expr):
     return expr[1]
@@ -139,8 +141,49 @@ class scope_t:
     for arg in reversed(args):
       s += f'  push qword {self.exec(arg)}\n' # TODO: qword based ons ize
     s += f'  call {name}\n'
+    s += f'  '
 
     return s
+
+  def exec_set(self, expr):
+    var = self.exec(expr[1])
+    to = self.exec(expr[2])
+
+    # TODO: Check types
+    # TODO: Depends on to
+    return f'  mov qword {var}, {to}\n' # TODO: qword depends on type
+    
+  def findFun(self, call):
+    # TODO: Similar to the interpreter
+    name = call[1]
+
+    if name in self.funs:
+      # TODO: Checks like in the interpreter
+      return self.funs[name]
+    if not self.parent is None:
+      return self.parent.findFun(call)
+
+    # TODO: Error
+
+    return None
+
+  def findVar(self, expr):
+    # TODO: Repeated code
+    name = expr[1]
+
+    if name in self.vars:
+      return self.vars[name]
+    if not self.parent is None:
+      return self.parent.findVar(expr)
+
+    # TODO: Error
+    return None
+
+  def varsOfPlace(self, reg):
+    return [(name, v) for name, v in self.vars.items() if v.reg == reg]
+  
+  def varsOfType(self, t):
+    return [(name, v) for name, v in self.vars.items() if v.type == t]
 
 if __name__ == '__main__':
   prog = (
@@ -151,7 +194,7 @@ if __name__ == '__main__':
     ),
     ('fun', 'main', (),
       ('def', 'exitCode', ('int', 5)),
-      ('def', 'test', ('int', 6)),
+      ('set', ('var', 'exitCode'), ('int', 6)),
       ('call', 'exit', ('var', 'exitCode')), # TODO: pass int or exitCode
       ('exit', ('int', 1)),
     ),
