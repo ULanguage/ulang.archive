@@ -261,7 +261,7 @@ class SetExpr(Expr):
 
     self.checkAndReplaceTypes(A, B, scope)
 
-    if isinstance(self.B, VarExpr) or isinstance(self.B, CallExpr):
+    if isinstance(self.B, VarExpr):
       A.value = B.value
     # elif isinstance(self.expr, ): # TODO: Other types? Pointers
     else: A.value = B

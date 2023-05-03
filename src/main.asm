@@ -16,8 +16,8 @@ getGlob:
   push rbp
   mov rbp, rsp
 
-  ; (return, (int64, 2))
-  mov rax, 2
+  ; (return, (var, globB))
+  mov rax, [globB]
   jmp .__ret
 
 .__ret:

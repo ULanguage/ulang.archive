@@ -7,7 +7,7 @@ if __name__ == '__main__':
     ('def', 'globA', 'int64'),
     ('def', 'globB', 'int64', ('int64', 1)),
     ('fun', 'getGlob', 'int64',
-      ('return', ('int64', 2)),
+      ('return', ('var', 'globA')),
     ),
     ('fun', 'setGlob', 'int64',
       ('return', ('int64', 3)),
