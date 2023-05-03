@@ -1,0 +1,146 @@
+// stdlib.u (implicit import)
+
+type size_t = int64
+
+fun new(size_t size) *byte { // Also used on &Person{}
+  malloc(size)
+}
+
+fun delete(*byte ptr) {
+  // TODO: Keep track of alloced pointers and check it's a valid one
+  if ptr != NULL {
+    free(ptr)
+  }
+}
+
+fun copyInto(*byte from, to, size_t size) { //TODO: Depth
+  // TODO ...
+}
+
+// Returns *byte but the actual type is inferred from "from"
+fun copy(*byte from, size_t size) *byte { //TODO: Depth
+  res = new(size)
+  copyInto(from, res, size) //TODO: Depth
+  return res
+}
+
+type array[T] = struct {
+  *T elements = nil
+  size_t size = 0
+  size_t maxSize = 0
+}
+
+fun (*array[T] a) append(T newElement) size_t {
+  if a.elements == NULL || a.size == a.maxSize {
+    a.expand()
+  }
+
+  a[a.size] = newElement
+  a.size += 1
+  return a.size
+}
+
+fun (*array[T] a) [](size_t at) *T {
+  return a.elements[at]
+}
+
+fun (*array[T] a) [](size_t at) T {
+  return *a[at]
+}
+
+fun (*array[T] a) expand() size_t {
+  a.maxSize += 1 // TODO: Smarter 
+  a.elements = realloc(a.elements, a.maxSize)
+  return a.maxSize
+}
+
+type string = struct {
+  // TODO ...
+}
+
+fun print() {
+  // TODO ...
+}
+
+// person.u
+
+/*
+import (
+  stdlib
+)
+*/
+
+type Person = struct {
+  string name
+  int age
+  *Person spouse = nil
+  array[*Person] children = array[*Person]{}
+}
+
+fun (*Person p) growUp() /* *Person */ {
+  p.age += 1
+  // return p
+}
+
+fun (*Person p) marry(*Person spouse) /* *Person */ {
+  p.spouse = spouse
+  spouse.spouse = p
+  // return p
+}
+
+fun (*Person p) haveChild(string name, int age = 0) *Person {
+  if name.empty() {
+    return nil
+  }
+
+  newPerson = &Person{name, age}
+
+  p.children.append(newPerson)
+  if p.spouse {
+    p.spouse.children.append(newPerson)
+  }
+
+  return newPerson
+}
+
+// main.u
+
+import (
+  ./person.u
+)
+
+fun startFamily(*Person A, B) /* bool */ {
+  C = A.marry(B).haveChild("Gafia")
+  N = B.haveChild("")
+
+  print("[startFamily]", A, B, C, N, sep = ", ")
+  delete(N) // Unnecessary because it will be nil, but just in case
+  // return true
+}
+
+fun testFamily(*Person A) /* bool */ {
+  C = A.children[0]
+  D = copy(C) // TODO: depth
+
+  //TODO: Removed equivalent
+  theSame = C == D // Same pointer
+  print("[testFamily]", C, D, theSame, C == C, D == D)
+
+  delete(D)
+  return !theSame
+}
+
+fun main(/* array[string] */ args) /* int */ {
+  A = Person{args[0], 22}
+  B = Person{args[1], 21}
+
+  if !startFamily(A, B) {
+    print("[startFamily] Error")
+    return 1
+  } elif !testFamily(A) {
+    print("[testFamily] Error")
+    return 1
+  }
+
+  // return 0
+}

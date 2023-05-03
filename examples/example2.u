@@ -1,0 +1,37 @@
+type globType = int // (typedef, globType, int)
+
+globType globA // (def, globA, globType) // Uses default value
+globType globB = 1 // (def, globB, globType, 1)
+
+fun getGlob(bool A = true) globType { // (fun, getGlob, ((param, A, bool, true)), (globType,), ...
+  if A { // (if, (var, A), (...
+    return globA // (return, (var, globA))
+  } else { // ), (...
+    return globB // (return, (var, globB))
+  } // )
+} // )
+
+fun setGlob(globType newValue, bool A = true) globType { // (fun, setGlob, ((param, newValue, globType), (param, A, bool, true)), (globType,), ...
+  if A { // (if, (var, A), (...
+    return globA = newValue // (return, (set, (var, globA), (var, newValue)))
+  } else { // ), (...
+    return globB = newValue // (return, (set, (var, globB), (var, newValue)))
+  } // )
+} // )
+
+fun main() int { // (fun, main, (), (int,), ...
+  // TODO: Initializes all global variables
+
+  globType ing = 0 // (def, ing, globType, 0)
+
+  setGlob(ing) // (call, (var, setGlob), ((var, ing),), ())
+  ing = setGlob(getGlob(false) + 1, A = false)
+  // (set, (var, ing), (call, (var, setGlob), ((+, (call, (var, getGlob), (false,), ())),), (A, false))) //TODO: Named arg?
+
+  block { // (block, 
+    foo = setGlob // (def, foo, INFERTYPE, (var, setGlob))
+    ing = foo(-1) // (set, ing, (call, (var, foo), (-1,), ()))
+  } // )
+
+  return ing // (exit, (var, ing))
+} // )
