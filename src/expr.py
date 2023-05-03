@@ -198,11 +198,10 @@ class DefExpr(Expr):
     var = scope.findVar(self.name)
     if not self.value is None:
       var.value = self.value.exec(scope)
-    print(var)
 
     return var
 
-  def comp(self, scope, isMain = False):
+  def comp(self, scope):
     print(self)
     text = self.compComment()
 
@@ -217,6 +216,32 @@ class DefExpr(Expr):
     return self.text
 
 #************************************************************
+#* VarExpr **************************************************
+
+class VarExpr(Expr):
+  def __init__(self, expr):
+    super().__init__(expr)
+    self.name = expr[1]
+  def __repr__(self):
+    return f'(var, {self.name})'
+
+  def exec(self, scope):
+    print(self)
+
+    var = scope.findVar(self.name)
+    if var is None:
+      raise Exception('[VarExpr.exec]')
+
+    return var
+
+  def comp(self, scope):
+    print(self)
+    text = self.compComment()
+    
+    self.text = text
+    return self.text
+
+#************************************************************
 #* ReturnExpr ***********************************************
 
 class ReturnExpr(Expr):
@@ -227,15 +252,24 @@ class ReturnExpr(Expr):
     return f'(return, {self.expr})'
 
   def exec(self, scope):
-    scope.ret = self.expr.exec(scope)
+    res = self.expr.exec(scope)
+    if isinstance(self.expr, VarExpr): 
+      res = res.value
+    # elif isinstance(self.expr, ): # TODO: Other types
+
+    scope.ret = res
     scope.returned = True
 
   def comp(self, scope):
     text = self.compComment()
 
-    res = self.expr.exec(scope) # TODO: Depends on it's type
+    res = self.expr.exec(scope)
+    if isinstance(self.expr, VarExpr):
+      text += f'  mov rax, {res.reference()}\n'
+    # elif isinstance(self.expr, ): # TODO: Other types
+    else:
+      text += f'  mov rax, {res}\n'
 
-    text += f'  mov rax, {res}\n'
     text += '  jmp .__ret\n'
 
     self.text = text
@@ -259,6 +293,31 @@ class IntrinsicExpr(Expr):
   def comp(self, scope):
     return self.value # TODO: Depends on the actual type
 
+#24
+#************************************************************
+#* GenericExpr***********************************************
+
+class GenericExpr(Expr):
+  def __init__(self, expr):
+    super().__init__(expr)
+  def __repr__(self):
+    return f'(GENERIC, )'
+
+  # def define(self, scope):
+    # pass
+
+  def exec(self, scope):
+    print(self)
+
+    return None
+
+  def comp(self, scope):
+    print(self)
+    text = self.compComment()
+    
+    self.text = text
+    return self.text
+
 #************************************************************
 #* Utils ****************************************************
 
@@ -267,9 +326,9 @@ Types = {
 
   'fun': FunExpr,
   'def': DefExpr,
+  'var': VarExpr,
 
   'return': ReturnExpr,
 
   'int64': IntrinsicExpr,
 }
-

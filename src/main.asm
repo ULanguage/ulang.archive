@@ -51,8 +51,8 @@ main:
   ; (def, ing, (int64, 4))
   mov qword [rsp + 0], 4
 
-  ; (return, (int64, 0))
-  mov rax, 0
+  ; (return, (var, ing))
+  mov rax, [rsp + 0]
   jmp .__ret
 
   mov rax, 0 ; By default exit with value 0

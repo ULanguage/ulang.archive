@@ -14,7 +14,7 @@ if __name__ == '__main__':
     ),
     ('fun', 'main',
       ('def', 'ing', ('int64', 4)),
-      ('return', ('int64', 0)),
+      ('return', ('var', 'ing')),
     ),
   ))
 
