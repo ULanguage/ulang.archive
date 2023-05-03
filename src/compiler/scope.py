@@ -49,7 +49,7 @@ class scope_t:
     if var.reg == 'global':
       global Data
       Data += f'\n  ; {expr}\n'
-      Data += f'{name}: dq {var.value}\n' # TODO: dq based on type
+      Data += f'{name}: dq {self.exec(expr[3])}\n' # TODO: dq based on type # TODO: Similar to set # TODO: Allow expressions
     else: return ''
 
   def exec_param(self, expr):
@@ -104,12 +104,21 @@ class scope_t:
 
     Text += s
 
-    Text += '\n.__ret:\n'
+    Text += '\n'
+    if name == 'main':
+      Text += '  mov rax, 0 ; By default exit with value 0\n'
+    Text += '.__ret:\n'
     Text += '; Remove the stack frame\n'
     if l != 0:
       Text += f'  add rsp, {l * 8}\n' # TODO: Based on each variable's length
     Text += '  pop rbp\n'
-    Text += '  ret\n\n'
+
+    if name == 'main':
+      Text += '; Exit\n'
+      Text += '  mov rdi, 0\n'
+      Text += '  syscall\n'
+    else:
+      Text += '  ret\n\n'
 
   def addFun(self, expr):
     name = expr[1] 

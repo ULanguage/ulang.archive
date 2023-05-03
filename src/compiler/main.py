@@ -3,7 +3,8 @@ from scope import scope_t
 
 if __name__ == '__main__':
   prog = (
-    # ('def', 'glob', 'int64'),
+    # int64 glob = 1
+    ('def', 'glob', 'int64', ('int64',  1)),
 
     # fun exit(int64 exitCode) int64
     ('fun', 'exit', (('param', 'exitCode', 'int64'),), 'int64',
@@ -11,31 +12,29 @@ if __name__ == '__main__':
       ('exit', ('var', 'exitCode')),
     ),
 
-    # fun test() int64
-    ('fun', 'test', (), 'int64',
-      # int64 glob = 3
-      ('def', 'glob', 'int64'),
-      ('set', ('var', 'glob'), ('int64', 5)),
-
-      # return 3
+    # fun getGlob() int64
+    ('fun', 'getGlob', (), 'int64',
+      # return glob
       ('return', ('var', 'glob')),
+    ),
+
+    # fun setGlob(int64 newGlob) int64
+    ('fun', 'setGlob', (('param', 'newGlob', 'int64'),), 'int64',
+      ('set', ('var', 'glob'), ('var', 'newGlob')),
     ),
 
     # fun main() int64
     ('fun', 'main', (), 'int64',
       # int64 ing = 1
       ('def', 'ing', 'int64'),
-      ('set', ('var', 'ing'), ('int64', 1)),
+      ('set', ('var', 'ing'), ('int64', 2)),
 
-      # ing = test()
-      ('set', ('var', 'ing'), ('call', 'test')),
+      # setGlob(ing)
+      ('call', 'setGlob', ('var', 'ing')),
 
-      # int64 __exitCode = 1
+      # int64 __exitCode = getGlob()
       ('def', '__exitCode', 'int64'),
-      ('set', ('var', '__exitCode'), ('int64', 1)),
-
-      # int64 __exitCode = ing
-      ('set', ('var', '__exitCode'), ('var', 'ing')),
+      ('set', ('var', '__exitCode'), ('call', 'getGlob')),
 
       # exit(__exitCode)
       ('call', 'exit', ('var', '__exitCode')),
