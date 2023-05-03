@@ -20,24 +20,21 @@ if __name__ == '__main__':
 
     # fun setGlob(int64 newGlob) int64
     ('fun', 'setGlob', (('param', 'newGlob', 'int64'),), 'int64',
+      # glob = newGlob
       ('set', ('var', 'glob'), ('var', 'newGlob')),
+
+      # return glob
+      ('return', ('var', 'glob')),
     ),
 
     # fun main() int64
     ('fun', 'main', (), 'int64',
       # int64 ing = 1
       ('def', 'ing', 'int64'),
-      ('set', ('var', 'ing'), ('int64', 2)),
+      ('set', ('var', 'ing'), ('int64', 4)),
 
-      # setGlob(ing)
-      ('call', 'setGlob', ('var', 'ing')),
-
-      # int64 __exitCode = getGlob()
-      ('def', '__exitCode', 'int64'),
-      ('set', ('var', '__exitCode'), ('call', 'getGlob')),
-
-      # exit(__exitCode)
-      ('call', 'exit', ('var', '__exitCode')),
+      # exit(setGlob(ing))
+      ('call', 'exit', ('call', 'setGlob', ('var', 'ing'))),
     ),
   )
 

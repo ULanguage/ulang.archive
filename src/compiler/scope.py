@@ -152,7 +152,11 @@ class scope_t:
 
     s = ''
     for arg in reversed(args):
-      s += f'  push qword {self.exec(arg)}\n' # TODO: qword based ons ize
+      if arg[0] == 'call':
+        s += self.exec(arg)
+        s += f'  push rax\n'
+      else:
+        s += f'  push qword {self.exec(arg)}\n' # TODO: qword based ons ize
     s += f'  call {name}\n'
     if len(args) != 0:
       s += f'  add rsp, {len(args) * 8}\n' # TODO: 8 based on each arg's size
