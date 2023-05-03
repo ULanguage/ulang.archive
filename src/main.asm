@@ -40,7 +40,7 @@ setGlob:
   pop rbp
   ret
 
-  ; (fun, main, (2)...)
+  ; (fun, main, (3)...)
 _start:
 main:
   ; Set the stack frame
@@ -50,6 +50,9 @@ main:
 
   ; (def, ing, (int64, 4))
   mov qword [rsp + 0], 4
+
+  ; (set, (var, ing), (int64, 5))
+  mov qword [rsp + 0], 5
 
   ; (return, (var, ing))
   mov rax, [rsp + 0]

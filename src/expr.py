@@ -236,7 +236,62 @@ class VarExpr(Expr):
 
   def comp(self, scope):
     print(self)
+    self.text = ''
+    return scope.findVar(self.name) # NOTE: Special
+
+#************************************************************
+#* SetExpr **************************************************
+
+class SetExpr(Expr):
+  def __init__(self, expr):
+    super().__init__(expr)
+    self.A = Expr.construct(expr[1])
+    self.B = Expr.construct(expr[2])
+
+  def __repr__(self):
+    return f'(set, {self.A}, {self.B})'
+
+  def exec(self, scope):
+    print(self)
+
+    A = self.A.exec(scope)
+    B = self.B.exec(scope)
+
+    if not isinstance(self.A, VarExpr):
+      raise Exception('[SetExpr.exec]')
+
+    # TODO: Check types
+
+    if isinstance(self.B, VarExpr):
+      A.value = B.value
+    # elif isinstance(self.expr, ): # TODO: Other types? Pointers
+    else: A.value = B
+
+    return A
+
+  def comp(self, scope):
+    print(self)
     text = self.compComment()
+
+    # TODO: Does the order matter?
+    A = self.A.comp(scope) 
+    B = self.B.comp(scope)
+
+    if not isinstance(self.A, VarExpr):
+      raise Exception('[SetExpr.comp]')
+
+    # TODO: Check types
+
+    reg = 'rax' # TODO: Alloc a register
+    if isinstance(self.B, VarExpr):
+      text += f'  mov {reg}, {B.reference()}\n'
+    elif isinstance(self.B, IntrinsicExpr): # TODO: Depends on the type
+      reg = B
+    # elif isinstance(self.B, ): # TODO: Other types
+    else:
+      text += f'  mov {reg}, {B}\n'
+
+    text += f'  mov qword {A.reference()}, {reg}\n' # TODO: qword depends on type
     
     self.text = text
     return self.text
@@ -328,6 +383,7 @@ Types = {
   'def': DefExpr,
   'var': VarExpr,
 
+  'set': SetExpr,
   'return': ReturnExpr,
 
   'int64': IntrinsicExpr,
