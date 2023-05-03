@@ -14,8 +14,8 @@ exit:
   mov rdi, [rbp + 16]
   syscall
 
-  ; Remove the stack frame
 .__ret:
+; Remove the stack frame
   pop rbp
   ret
 
@@ -28,8 +28,8 @@ test:
   mov qword rax, 3
   jmp .__ret
 
-  ; Remove the stack frame
 .__ret:
+; Remove the stack frame
   pop rbp
   ret
 
@@ -63,8 +63,8 @@ main:
   call exit
   add rsp, 8
 
-  ; Remove the stack frame
 .__ret:
+; Remove the stack frame
   add rsp, 16
   pop rbp
   ret

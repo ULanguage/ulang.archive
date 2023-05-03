@@ -104,8 +104,8 @@ class scope_t:
 
     Text += s
 
-    Text += '\n  ; Remove the stack frame\n'
-    Text += '.__ret:\n'
+    Text += '\n.__ret:\n'
+    Text += '; Remove the stack frame\n'
     if l != 0:
       Text += f'  add rsp, {l * 8}\n' # TODO: Based on each variable's length
     Text += '  pop rbp\n'
