@@ -1,5 +1,8 @@
 from copy import deepcopy
 
+#************************************************************
+#* Expr *****************************************************
+
 class Expr:
   def __init__(self, expr):
     self._expr = expr
@@ -30,11 +33,17 @@ class Expr:
     _class = Types.get(t, Expr)
     return _class(expr)
 
+#************************************************************
+#* EmptyExpr ************************************************
+
 class EmptyExpr(Expr):
   def __init__(self):
     pass
   def __repr__(self):
     return '()'
+
+#************************************************************
+#* FileExpr *************************************************
 
 class FileExpr(Expr):
   def __init__(self, expr):
@@ -53,7 +62,10 @@ class FileExpr(Expr):
       # TODO: Check types?
       expr.define(scope)
 
-    # TODO: Instance vars with (default) values
+    # Instance vars # TODO: Loops between them: A = B; B = C; C = A;
+    for expr in self.exprs:
+      if isinstance(expr, DefExpr):
+        expr.exec(scope)
 
     # Begin executing main function
     if isMain:
@@ -70,7 +82,9 @@ class FileExpr(Expr):
     # Define vars, types, funs # TODO: Anything else? options, libname, import
     for expr in self.exprs:
       # TODO: Check types?
-      expr.define(scope)
+      _def = expr.define(scope)
+      if not _def is None: # TODO: Also put exported functions at the top
+        self.data += _def
 
     # Compile functions # NOTE: The order doesn't matter
     main = scope.findMainFun()
@@ -79,6 +93,9 @@ class FileExpr(Expr):
         self.text += expr.comp(scope.child(), isMain = expr == main)
 
     return self.data, self.text
+
+#************************************************************
+#* FunExpr **************************************************
 
 class FunExpr(Expr):
   def __init__(self, expr):
@@ -113,9 +130,9 @@ class FunExpr(Expr):
       # TODO: Check types?
       s += expr.comp(scope)
 
-    return self.getText(s, isMain)
+    return self.getText(s, isMain, scope)
 
-  def getText(self, s, isMain):
+  def getText(self, s, isMain, scope):
     text = self.compComment()
     text += '_start:\n' if isMain else ''
     text += f'{self.name}:\n'
@@ -123,7 +140,7 @@ class FunExpr(Expr):
     text += '  push rbp\n'
     text += '  mov rbp, rsp\n'
 
-    l = 0 # TODO: Stack
+    l = len(scope.vars) # TODO: vars with reg == rsp
     if l != 0:
       text += f'  sub rsp, {l * 8} ; {l} stack vars\n' # TODO: Based on each variable's length
 
@@ -141,7 +158,7 @@ class FunExpr(Expr):
     if isMain:
       text += '  ; Exit\n'
       text += '  mov rdi, rax\n' 
-      text += '  mov rax, 0\n'
+      text += '  mov rax, 60\n'
       text += '  syscall\n'
     else:
       text += '  ret\n'
@@ -150,7 +167,50 @@ class FunExpr(Expr):
     return self.text
 
   def define(self, scope):
-    return scope.defFun(self)
+    scope.defFun(self)
+
+#************************************************************
+#* DefExpr **************************************************
+
+class DefExpr(Expr):
+  def __init__(self, expr):
+    super().__init__(expr)
+    self.name = expr[1]
+    self.value = Expr.construct(expr[2]) if len(expr) > 2 else None
+  def __repr__(self):
+    return f'(def, {self.name}, {self.value})'
+
+  def define(self, scope):
+    scope.defVar(self.name)
+
+    text = self.compComment()
+    text += f'{self.name}: '
+    if self.value is None:
+      return text + 'dq 0\n' # TODO: Reserve space for it's type
+    elif isinstance(self.value, IntrinsicExpr):
+      return text + f'{self.value.define()}\n'
+
+  def exec(self, scope):
+    print(self)
+    # TODO: Instance
+
+  def comp(self, scope, isMain = False):
+    print(self)
+    text = self.compComment()
+
+    self.define(scope)
+    reg = 'rsp'
+    offset = (len(scope.vars) - 1) * 8 # TODO: Vars with reg = reg, and 8 depends on each var's size
+
+    if isinstance(self.value, IntrinsicExpr): # TODO: Not all types
+      text += f'  mov qword [{reg} + {offset}], {self.value.comp(scope)}\n' # TODO: qword depends on size
+    # elif not is None # TODO: setExpr
+
+    self.text = text
+    return self.text
+
+#************************************************************
+#* ReturnExpr ***********************************************
 
 class ReturnExpr(Expr):
   def __init__(self, expr):
@@ -174,6 +234,9 @@ class ReturnExpr(Expr):
     self.text = text
     return self.text
 
+#************************************************************
+#* IntrinsicExpr ********************************************
+
 class IntrinsicExpr(Expr):
   def __init__(self, expr):
     super().__init__(expr)
@@ -182,14 +245,22 @@ class IntrinsicExpr(Expr):
   def __repr__(self):
     return f'({self.type}, {self.value})'
 
+  def define(self):
+    return f'dq {self.value}' # TODO: Depends on the actual type
   def exec(self, scope):
     return self.value
   def comp(self, scope):
     return self.value # TODO: Depends on the actual type
 
+#************************************************************
+#* Utils ****************************************************
+
 Types = {
   'file': FileExpr,
+
   'fun': FunExpr,
+  'def': DefExpr,
+
   'return': ReturnExpr,
 
   'int64': IntrinsicExpr,

@@ -3,6 +3,7 @@ class Scope:
     self.parent = parent
 
     self.funs = dict()
+    self.vars = dict()
 
     self.res = None
     self.returned = False
@@ -25,6 +26,19 @@ class Scope:
       return self.funs[fun.name]
     if not self.parent is None:
       return self.parent.findFun(fun)
+    return None
+
+  def defVar(self, name):
+    # TODO: Repeated code with defFun
+    if not self.findVar(name) is None:
+      raise Exception('[defVar]')
+    self.vars[name] = None # TODO: var_t
+
+  def findVar(self, name):
+    if name in self.vars:
+      return self.vars[name]
+    if not self.parent is None:
+      return self.parent.findVar(name)
     return None
 
   def findMainFun(self):

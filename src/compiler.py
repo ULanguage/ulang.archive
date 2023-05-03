@@ -18,7 +18,7 @@ def Compile(fileExpr, to = 'main.asm'):
   data += _data
   text += _text
   
-  res = '\n\n'.join([top, data, text])
+  res = '\n'.join([top, data, text])
   if not to is None:
     with open(to, 'w') as fout:
       fout.write(res)
