@@ -305,6 +305,44 @@ class SetExpr(Expr):
     # elif isinstance(self.B, ): # TODO: Other types
 
 #************************************************************
+#* CallExpr *************************************************
+
+class CallExpr(Expr):
+  def __init__(self, expr):
+    super().__init__(expr)
+    self.name = expr[1]
+  def __repr__(self):
+    return f'(call, {self.name})'
+
+  def exec(self, scope):
+    print(self)
+
+    hack = Expr.construct(('fun', self.name)) 
+    fun = scope.findFun(hack) # TODO: Use signature
+
+    sibling = scope.sibling()
+
+    # TODO: Templated types
+    # TODO: Params
+
+    return fun.exec(sibling)
+
+  def comp(self, scope):
+    print(self)
+    text = self.compComment()
+  
+    hack = Expr.construct(('fun', self.name)) 
+    fun = scope.findFun(hack) # TODO: Use signature
+
+    # TODO: Templated types? Should've been compiled
+    # TODO: Params
+
+    text += f'  call {fun.name}\n'
+    
+    self.text = text
+    return self.text
+
+#************************************************************
 #* ReturnExpr ***********************************************
 
 class ReturnExpr(Expr):
@@ -318,6 +356,8 @@ class ReturnExpr(Expr):
     res = self.expr.exec(scope)
     if isinstance(self.expr, VarExpr): 
       res = res.value
+    elif isinstance(self.expr, IntrinsicExpr):
+      res = self.expr
     # elif isinstance(self.expr, ): # TODO: Other types
 
     scope.ret = res
@@ -392,6 +432,7 @@ Types = {
   'var': VarExpr,
 
   'set': SetExpr,
+  'call': CallExpr,
   'return': ReturnExpr,
 
   'int64': IntrinsicExpr,

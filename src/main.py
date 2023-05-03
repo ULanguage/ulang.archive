@@ -15,6 +15,7 @@ if __name__ == '__main__':
     ('fun', 'main',
       ('def', 'ing', '', ('int64', 4)),
       ('set', ('var', 'ing'), ('int32', 5)),
+      ('call', 'getGlob'),
       ('return', ('var', 'ing')),
     ),
   ))
