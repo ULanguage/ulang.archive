@@ -14,12 +14,22 @@ exit:
   mov rdi, [rbp + 16]
   syscall
 
-  ; ('exit', ('int', 2))
-  mov rax, 60
-  mov rdi, 2
-  syscall
+  ; Remove the stack frame
+.__ret:
+  pop rbp
+  ret
+
+test:
+  ; Set the stack frame
+  push rbp
+  mov rbp, rsp
+
+  ; ('return', ('int64', 5))
+  mov qword rax, 5
+  jmp .__ret
 
   ; Remove the stack frame
+.__ret:
   pop rbp
   ret
 
@@ -30,22 +40,20 @@ main:
   mov rbp, rsp
   sub rsp, 8 ; 1 stack vars
 
-  ; ('def', 'exitCode', ('int', 5))
-  mov qword [rsp + 0], 5
+  ; ('call', 'test')
+  call test
+  
+  ; ('def', '__exitCode', 'int64')
 
-  ; ('set', ('var', 'exitCode'), ('int', 6))
-  mov qword [rsp + 0], 6
+  ; ('set', ('var', '__exitCode'), ('int64', 3))
+  mov qword [rsp + 0], 3
 
-  ; ('call', 'exit', ('var', 'exitCode'))
+  ; ('call', 'exit', ('var', '__exitCode'))
   push qword [rsp + 0]
   call exit
   
-  ; ('exit', ('int', 1))
-  mov rax, 60
-  mov rdi, 1
-  syscall
-
   ; Remove the stack frame
+.__ret:
   add rsp, 8
   pop rbp
   ret
