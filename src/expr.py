@@ -101,9 +101,10 @@ class FunExpr(Expr):
   def __init__(self, expr):
     super().__init__(expr)
     self.name = expr[1]
-    self.exprs = [Expr.construct(_expr) for _expr in expr[2:]]
+    self.type = expr[2]
+    self.exprs = [Expr.construct(_expr) for _expr in expr[3:]]
   def __repr__(self):
-    return f'(fun, {self.name}, ({len(self.exprs)})...)'
+    return f'(fun, {self.name}, {self.type}, ({len(self.exprs)})...)'
 
   def exec(self, scope, isMain = False):
     print(self)
@@ -258,9 +259,9 @@ class SetExpr(Expr):
     A = self.A.exec(scope)
     B = self.B.exec(scope)
 
-    self.checkAndReplaceTypes(A, B)
+    self.checkAndReplaceTypes(A, B, scope)
 
-    if isinstance(self.B, VarExpr):
+    if isinstance(self.B, VarExpr) or isinstance(self.B, CallExpr):
       A.value = B.value
     # elif isinstance(self.expr, ): # TODO: Other types? Pointers
     else: A.value = B
@@ -275,11 +276,14 @@ class SetExpr(Expr):
     A = self.A.comp(scope) 
     B = self.B.comp(scope)
 
-    self.checkAndReplaceTypes(A, B)
+    self.checkAndReplaceTypes(A, B, scope)
 
     reg = 'rax' # TODO: Alloc a register
     if isinstance(self.B, VarExpr):
       text += f'  mov {reg}, {B.reference()}\n'
+    elif isinstance(self.B, CallExpr):
+      text += B
+      reg = 'rax' # TODO: Multiple returns
     elif isinstance(self.B, IntrinsicExpr): # TODO: Depends on the type
       reg = B
     # elif isinstance(self.B, ): # TODO: Other types
@@ -291,7 +295,7 @@ class SetExpr(Expr):
     self.text = text
     return self.text
 
-  def checkAndReplaceTypes(self, A, B): # TODO: Rename
+  def checkAndReplaceTypes(self, A, B, scope): # TODO: Rename
     if not isinstance(self.A, VarExpr):
       raise Exception('[SetExpr] A is not a var:', self)
 
@@ -302,6 +306,12 @@ class SetExpr(Expr):
     elif isinstance(self.B, IntrinsicExpr) and A.type != self.B.type:
       if A.typeless: A.type = self.B.type
       else: raise Exception('[SetExpr] Wrong types:', self)
+    elif isinstance(self.B, CallExpr):
+      hack = Expr.construct(('fun', self.B.name, '')) 
+      fun = scope.findFun(hack) # TODO: Use signature
+      if A.type != fun.type:
+        if A.typeless: A.type = fun.type
+        else: raise Exception('[SetExpr] Wrong types:', self)
     # elif isinstance(self.B, ): # TODO: Other types
 
 #************************************************************
@@ -317,7 +327,7 @@ class CallExpr(Expr):
   def exec(self, scope):
     print(self)
 
-    hack = Expr.construct(('fun', self.name)) 
+    hack = Expr.construct(('fun', self.name, '')) 
     fun = scope.findFun(hack) # TODO: Use signature
 
     sibling = scope.sibling()
@@ -331,7 +341,7 @@ class CallExpr(Expr):
     print(self)
     text = self.compComment()
   
-    hack = Expr.construct(('fun', self.name)) 
+    hack = Expr.construct(('fun', self.name, '')) 
     fun = scope.findFun(hack) # TODO: Use signature
 
     # TODO: Templated types? Should've been compiled
