@@ -4,6 +4,9 @@ from expr import Expr
 
 if __name__ == '__main__':
   main = Expr.construct(('file', 'main.u',
+    ('fun', 'test',
+      ('return', ('int64', 1)),
+    ),
     ('fun', 'main',
       ('return', ('int64', 0)),
     ),
