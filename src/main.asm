@@ -51,7 +51,7 @@ main:
   ; (def, ing, (int64, 4))
   mov qword [rsp + 0], 4
 
-  ; (set, (var, ing), (int64, 5))
+  ; (set, (var, ing), (int32, 5))
   mov qword [rsp + 0], 5
 
   ; (return, (var, ing))

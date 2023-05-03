@@ -12,7 +12,7 @@ class IScope(Scope):
     super().__init__(parent)
 
   def newVar(self, _def):
-    return IVar(_type = 'int64') # TODO: _def.value/type
+    return IVar(_type = _def.type)
 
 def Execute(fileExpr):
   print('[Execute]', fileExpr)

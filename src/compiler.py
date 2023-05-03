@@ -23,7 +23,7 @@ class CScope(Scope):
       reg = 'global'
       offset = _def.name
 
-    return CVar(reg, offset, 'int64') # TODO: _def.type
+    return CVar(reg, offset, _def.type)
 
   def varsWithReg(self, reg):
     return [var for _, var in self.vars.items() if var.reg == reg]

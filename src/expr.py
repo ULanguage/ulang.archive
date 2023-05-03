@@ -178,7 +178,8 @@ class DefExpr(Expr):
   def __init__(self, expr):
     super().__init__(expr)
     self.name = expr[1]
-    self.value = Expr.construct(expr[2]) if len(expr) > 2 else None
+    self.type = expr[2]
+    self.value = Expr.construct(expr[3]) if len(expr) > 3 else None
   def __repr__(self):
     return f'(def, {self.name}, {self.value})'
 
@@ -257,10 +258,7 @@ class SetExpr(Expr):
     A = self.A.exec(scope)
     B = self.B.exec(scope)
 
-    if not isinstance(self.A, VarExpr):
-      raise Exception('[SetExpr.exec]')
-
-    # TODO: Check types
+    self.checkAndReplaceTypes(A, B)
 
     if isinstance(self.B, VarExpr):
       A.value = B.value
@@ -277,10 +275,7 @@ class SetExpr(Expr):
     A = self.A.comp(scope) 
     B = self.B.comp(scope)
 
-    if not isinstance(self.A, VarExpr):
-      raise Exception('[SetExpr.comp]')
-
-    # TODO: Check types
+    self.checkAndReplaceTypes(A, B)
 
     reg = 'rax' # TODO: Alloc a register
     if isinstance(self.B, VarExpr):
@@ -295,6 +290,19 @@ class SetExpr(Expr):
     
     self.text = text
     return self.text
+
+  def checkAndReplaceTypes(self, A, B): # TODO: Rename
+    if not isinstance(self.A, VarExpr):
+      raise Exception('[SetExpr] A is not a var:', self)
+
+    # TODO: Clean
+    if isinstance(self.B, VarExpr) and A.type != B.type:
+      if A.typeless: A.type = B.type
+      else: raise Exception('[SetExpr] Wrong types:', self)
+    elif isinstance(self.B, IntrinsicExpr) and A.type != self.B.type:
+      if A.typeless: A.type = self.B.type
+      else: raise Exception('[SetExpr] Wrong types:', self)
+    # elif isinstance(self.B, ): # TODO: Other types
 
 #************************************************************
 #* ReturnExpr ***********************************************
@@ -387,4 +395,5 @@ Types = {
   'return': ReturnExpr,
 
   'int64': IntrinsicExpr,
+  'int32': IntrinsicExpr,
 }
