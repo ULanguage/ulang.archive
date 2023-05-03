@@ -111,7 +111,9 @@ class FunExpr(Expr):
 
     # Execute expressions in order
     for expr in self.exprs:
-      # TODO: Check types?
+      if isinstance(expr, DefExpr): # TODO: Check other types? Like functions
+        expr.define(scope)
+
       expr.exec(scope)
       if scope.returned:
         break
@@ -140,7 +142,7 @@ class FunExpr(Expr):
     text += '  push rbp\n'
     text += '  mov rbp, rsp\n'
 
-    l = len(scope.vars) # TODO: vars with reg == rsp
+    l = len(scope.varsWithReg('rsp'))
     if l != 0:
       text += f'  sub rsp, {l * 8} ; {l} stack vars\n' # TODO: Based on each variable's length
 
@@ -181,7 +183,7 @@ class DefExpr(Expr):
     return f'(def, {self.name}, {self.value})'
 
   def define(self, scope):
-    scope.defVar(self.name)
+    scope.defVar(self)
 
     text = self.compComment()
     text += f'{self.name}: '
@@ -192,18 +194,23 @@ class DefExpr(Expr):
 
   def exec(self, scope):
     print(self)
-    # TODO: Instance
+
+    var = scope.findVar(self.name)
+    if not self.value is None:
+      var.value = self.value.exec(scope)
+    print(var)
+
+    return var
 
   def comp(self, scope, isMain = False):
     print(self)
     text = self.compComment()
 
     self.define(scope)
-    reg = 'rsp'
-    offset = (len(scope.vars) - 1) * 8 # TODO: Vars with reg = reg, and 8 depends on each var's size
+    var = scope.findVar(self.name)
 
     if isinstance(self.value, IntrinsicExpr): # TODO: Not all types
-      text += f'  mov qword [{reg} + {offset}], {self.value.comp(scope)}\n' # TODO: qword depends on size
+      text += f'  mov qword [{var.reg} + {var.offset}], {self.value.comp(scope)}\n' # TODO: qword depends on size
     # elif not is None # TODO: setExpr
 
     self.text = text

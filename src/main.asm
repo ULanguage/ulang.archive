@@ -16,8 +16,8 @@ getGlob:
   push rbp
   mov rbp, rsp
 
-  ; (return, (int64, 1))
-  mov rax, 1
+  ; (return, (int64, 2))
+  mov rax, 2
   jmp .__ret
 
 .__ret:
@@ -31,8 +31,8 @@ setGlob:
   push rbp
   mov rbp, rsp
 
-  ; (return, (int64, 1))
-  mov rax, 1
+  ; (return, (int64, 3))
+  mov rax, 3
   jmp .__ret
 
 .__ret:
@@ -48,8 +48,8 @@ main:
   mov rbp, rsp
   sub rsp, 8 ; 1 stack vars
 
-  ; (def, ing, (int64, 1))
-  mov qword [rsp + 0], 1
+  ; (def, ing, (int64, 4))
+  mov qword [rsp + 0], 4
 
   ; (return, (int64, 0))
   mov rax, 0

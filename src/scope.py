@@ -1,3 +1,10 @@
+class Var:
+  def __init__(self, _type = '', typeless = False):
+    self.type = _type
+    self.typeless = typeless or _type == ''
+  def __repr__(self):
+    return f'var<{self.type}, {self.typeless}>'
+
 class Scope:
   def __init__(self, parent = None):
     self.parent = parent
@@ -9,7 +16,7 @@ class Scope:
     self.returned = False
 
   def __repr__(self):
-    return f'Scope<{not self.parent is None}, {list(self.funs.keys())}>'
+    return f'Scope<{not self.parent is None}, {list(self.funs.keys())}, {list(self.vars.keys())}>'
 
   def child(self):
     return type(self)(parent = self)
@@ -28,13 +35,16 @@ class Scope:
       return self.parent.findFun(fun)
     return None
 
-  def defVar(self, name):
+  def defVar(self, _def):
     # TODO: Repeated code with defFun
-    if not self.findVar(name) is None:
+    if not self.findVar(_def.name) is None:
       raise Exception('[defVar]')
-    self.vars[name] = None # TODO: var_t
+    var = self.newVar(_def)
+    self.vars[_def.name] = var
+    return var
 
   def findVar(self, name):
+    # TODO: Repeated code with findFun
     if name in self.vars:
       return self.vars[name]
     if not self.parent is None:

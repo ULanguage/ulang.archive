@@ -1,8 +1,32 @@
-from scope import Scope
+from scope import Var, Scope
+
+class CVar(Var):
+  def __init__(self, reg, offset, _type = '', typeless = False):
+    super().__init__(_type, typeless) # TODO: Can CVars be typeless
+    self.reg = reg
+    self.offset = offset 
+  def __repr__(self):
+    return f'cvar<{self.reg}, {self.offset}, {self.type}, {self.typeless}>'
+  def reference(self):
+    reg, offset = self.reg, self.offset # Rename
+    if reg == 'global': return f'[{offset}]'
+    else: return f'[{reg} + {offset}]'
 
 class CScope(Scope):
   def __init__(self, parent = None):
     super().__init__(parent)
+
+  def newVar(self, _def):
+    reg = 'rsp' # TODO: rbp if param
+    offset = (len(self.varsWithReg(reg)) + int(reg == 'rbp')) * 8 # TODO: 8 depends on each var's size
+    if self.parent is None:
+      reg = 'global'
+      offset = _def.name
+
+    return CVar(reg, offset, 'int64') # TODO: _def.type
+
+  def varsWithReg(self, reg):
+    return [var for _, var in self.vars.items() if var.reg == reg]
 
 def Compile(fileExpr, to = 'main.asm'):
   print('[Compile]', fileExpr, to)
