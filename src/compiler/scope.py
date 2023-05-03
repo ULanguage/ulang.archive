@@ -75,7 +75,8 @@ class scope_t:
     global Text
     name = expr[1]
     params = expr[2]
-    exprs = expr[3:]
+    resT = expr[3]
+    exprs = expr[4:]
 
     self.addFun(expr)
 
@@ -144,17 +145,29 @@ class scope_t:
     for arg in reversed(args):
       s += f'  push qword {self.exec(arg)}\n' # TODO: qword based ons ize
     s += f'  call {name}\n'
-    s += f'  '
+    if len(args) != 0:
+      s += f'  add rsp, {len(args) * 8}\n' # TODO: 8 based on each arg's size
 
     return s
 
   def exec_set(self, expr):
-    var = self.exec(expr[1])
-    to = self.exec(expr[2])
-
     # TODO: Check types
     # TODO: Depends on to
-    return f'  mov qword {var}, {to}\n' # TODO: qword depends on type
+    A = expr[1]
+    B = expr[2]
+
+    s = ''
+    to = ''
+    if B[0] == 'call':
+      to = 'rax'
+      s += self.exec(B)
+      print('asads', B, s)
+    else: to = self.exec(B)
+      
+    var = self.exec(expr[1])
+
+    s += f'  mov qword {var}, {to}\n' # TODO: qword depends on type
+    return s
 
   def exec_return(self, expr):
     to = self.exec(expr[1])
