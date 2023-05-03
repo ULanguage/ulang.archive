@@ -173,10 +173,23 @@ class scope_t:
     return s
 
   def exec_return(self, expr):
-    to = self.exec(expr[1])
     # TODO: Very similar to set
+    # TODO: Check types
+    # TODO: Depends on the subexpr
+    subexpr = expr[1]
 
-    s = f'  mov qword rax, {to}\n'
+    s = ''
+    to = ''
+    if subexpr[0] == 'call':
+      to = 'rax'
+      s += self.exec(subexpr)
+    elif subexpr[0] == 'var':
+      # TODO: Actually depends on where both vars are stored
+      to = 'r8' # TODO: Alloc a register
+      s += f'  mov qword {to}, {self.exec(subexpr)}\n' # TODO: qword depends on type
+    else: to = self.exec(subexpr)
+      
+    s += f'  mov qword rax, {to}\n'
     s += f'  jmp .__ret\n'
     return s
 

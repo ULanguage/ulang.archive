@@ -23,13 +23,21 @@ test:
   ; Set the stack frame
   push rbp
   mov rbp, rsp
+  sub rsp, 8 ; 1 stack vars
 
-  ; ('return', ('int64', 3))
-  mov qword rax, 3
+  ; ('def', 'glob', 'int64')
+
+  ; ('set', ('var', 'glob'), ('int64', 5))
+  mov qword [rsp + 0], 5
+
+  ; ('return', ('var', 'glob'))
+  mov qword r8, [rsp + 0]
+  mov qword rax, r8
   jmp .__ret
 
 .__ret:
 ; Remove the stack frame
+  add rsp, 8
   pop rbp
   ret
 

@@ -3,6 +3,8 @@ from scope import scope_t
 
 if __name__ == '__main__':
   prog = (
+    # ('def', 'glob', 'int64'),
+
     # fun exit(int64 exitCode) int64
     ('fun', 'exit', (('param', 'exitCode', 'int64'),), 'int64',
       # exit exitCode
@@ -11,8 +13,12 @@ if __name__ == '__main__':
 
     # fun test() int64
     ('fun', 'test', (), 'int64',
+      # int64 glob = 3
+      ('def', 'glob', 'int64'),
+      ('set', ('var', 'glob'), ('int64', 5)),
+
       # return 3
-      ('return', ('int64', 3)),
+      ('return', ('var', 'glob')),
     ),
 
     # fun main() int64
