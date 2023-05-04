@@ -257,17 +257,18 @@ class VarExpr(Expr):
 
   def exec(self, scope):
     print(self)
-
-    var = scope.findVar(self.name)
-    if var is None:
-      raise Exception('[VarExpr.exec]')
-
-    return var
+    return self.find(scope)
 
   def comp(self, scope):
     print(self)
     self.text = ''
-    return scope.findVar(self.name) # NOTE: Special # TODO: Check like in exec?
+    return self.find(scope) # NOTE: Special within comp, doesn't return any text
+
+  def find(self, scope):
+    var = scope.findVar(self.name)
+    if var is None:
+      raise Exception('[VarExpr.find]')
+    return var
 
 #************************************************************
 #* SetExpr **************************************************
@@ -411,7 +412,7 @@ class ReturnExpr(Expr):
   def comp(self, scope):
     text = self.compComment()
 
-    res = self.expr.exec(scope) # TODO: Shouldn't this be comp? # URGENT
+    res = self.expr.comp(scope) # TODO: Shouldn't this be comp? # URGENT
     if isinstance(self.expr, VarExpr):
       text += f'  mov rax, {res.reference()}\n'
     # elif isinstance(self.expr, ): # TODO: Other types
