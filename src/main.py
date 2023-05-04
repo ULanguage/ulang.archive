@@ -4,7 +4,7 @@ from expr import Expr
 
 if __name__ == '__main__':
   main = Expr.construct(('file', 'main.u',
-    ('def', 'globA', 'int64'),
+    ('def', 'globA', 'int64', ()),
     ('def', 'globB', 'int64', ('int64', 1)),
     ('fun', 'getGlob', 'int64',
       ('return', ('var', 'globA')),

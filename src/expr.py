@@ -9,25 +9,29 @@ class Expr:
     self.text = None
   def __repr__(self):
     return f'({self._expr[0]}, ({len(self._expr[1:])})...)'
+  def define(self, scope):
+    # U: Used to define this expression in the current scope
+    print('[define] TODO', self)
+    return None
   def exec(self, scope):
+    # U: Used to execute this expression in the interpreter
     print('[exec] TODO', self)
     return None
   def comp(self, scope):
+    # U: Used to compile this expression
     print('[comp] TODO', self)
     self.text = ''
     return self.text
-  def define(self, scope):
-    print('[define] TODO', self)
-    return None
 
   def compComment(self):
     return f'\n  ; {self}\n'
 
   def construct(expr):
+    # U: Generic constructor for all expressions
     if isinstance(expr, Expr):
       return deepcopy(expr)
     elif len(expr) == 0:
-      return EmptyExpr()
+      return EmptyExpr(expr)
 
     t = expr[0]
     _class = Types.get(t, Expr)
@@ -35,15 +39,17 @@ class Expr:
 
 #************************************************************
 #* EmptyExpr ************************************************
+# ()
+# Does nothing
 
 class EmptyExpr(Expr):
-  def __init__(self):
-    pass
   def __repr__(self):
     return '()'
 
 #************************************************************
 #* FileExpr *************************************************
+# (file, string path, Expr exprs...)
+# Defines a file in the project
 
 class FileExpr(Expr):
   def __init__(self, expr):
@@ -96,6 +102,8 @@ class FileExpr(Expr):
 
 #************************************************************
 #* FunExpr **************************************************
+# (fun, string name, Type returnType, Expr exprs...)
+# Describes a function, the expressions are it's actual code
 
 class FunExpr(Expr):
   def __init__(self, expr):
@@ -105,6 +113,9 @@ class FunExpr(Expr):
     self.exprs = [Expr.construct(_expr) for _expr in expr[3:]]
   def __repr__(self):
     return f'(fun, {self.name}, {self.type}, ({len(self.exprs)})...)'
+
+  def define(self, scope):
+    scope.defFun(self)
 
   def exec(self, scope, isMain = False):
     print(self)
@@ -133,26 +144,40 @@ class FunExpr(Expr):
       # TODO: Check types?
       s += expr.comp(scope)
 
-    return self.getText(s, isMain, scope)
+    return self.getText(scope, s, isMain)
 
-  def getText(self, s, isMain, scope):
+  def getText(self, scope, s, isMain):
+    # TODO: Simplify
     text = self.compComment()
     text += '_start:\n' if isMain else ''
     text += f'{self.name}:\n'
-    text += '  ; Set the stack frame\n'
-    text += '  push rbp\n'
-    text += '  mov rbp, rsp\n'
 
-    l = len(scope.varsWithReg('rsp'))
-    if l != 0:
-      text += f'  sub rsp, {l * 8} ; {l} stack vars\n' # TODO: Based on each variable's length
+    text += self.textBuildSF(scope)
 
     text += s
 
     text += '\n'
     if isMain:
       text += '  mov rax, 0 ; By default exit with value 0\n'
-    text += '.__ret:\n'
+
+    text += self.textRet(scope, isMain)
+  
+    self.text = text
+    return self.text
+
+  def textBuildSF(self, scope):
+    text = '  ; Build the stack frame\n'
+    text += '  push rbp\n'
+    text += '  mov rbp, rsp\n'
+
+    l = len(scope.varsWithReg('rsp'))
+    if l != 0:
+      text += f'  sub rsp, {l * 8} ; {l} stack vars\n' # TODO: Based on each variable's length
+    return text
+
+  def textRet(self, scope, isMain):
+    l = len(scope.varsWithReg('rsp'))
+    text = '.__ret:\n'
     text += '  ; Remove the stack frame\n'
     if l != 0:
       text += f'  add rsp, {l * 8}\n' # TODO: Based on each variable's length
@@ -165,40 +190,40 @@ class FunExpr(Expr):
       text += '  syscall\n'
     else:
       text += '  ret\n'
-  
-    self.text = text
-    return self.text
 
-  def define(self, scope):
-    scope.defFun(self)
+    return text
 
 #************************************************************
 #* DefExpr **************************************************
+# (def, string name, Type type, Expr value)
+# Defines a variable
 
 class DefExpr(Expr):
   def __init__(self, expr):
     super().__init__(expr)
     self.name = expr[1]
     self.type = expr[2]
-    self.value = Expr.construct(expr[3]) if len(expr) > 3 else None
+    self.value = Expr.construct(expr[3])
   def __repr__(self):
     return f'(def, {self.name}, {self.value})'
 
   def define(self, scope):
     scope.defVar(self)
 
+    # NOTE: Only for comp
     text = self.compComment()
     text += f'{self.name}: '
-    if self.value is None:
+    if isinstance(self.value, EmptyExpr):
       return text + 'dq 0\n' # TODO: Reserve space for it's type
     elif isinstance(self.value, IntrinsicExpr):
       return text + f'{self.value.define()}\n'
+    # else: pass # TODO: Other types, queue for main to comp it
 
   def exec(self, scope):
     print(self)
 
     var = scope.findVar(self.name)
-    if not self.value is None:
+    if not isinstance(self.value, EmptyExpr):
       var.value = self.value.exec(scope)
 
     return var
@@ -211,14 +236,17 @@ class DefExpr(Expr):
     var = scope.findVar(self.name)
 
     if isinstance(self.value, IntrinsicExpr): # TODO: Not all types
-      text += f'  mov qword [{var.reg} + {var.offset}], {self.value.comp(scope)}\n' # TODO: qword depends on size
-    # elif not is None # TODO: setExpr
+      text += f'  mov qword [{var.reg} + {var.offset}], {self.value.comp(scope)}\n' # TODO: qword depends on size # TODO: Isn't this also a setExpr?
+    elif not isinstance(self.value, EmptyExpr):
+      raise Exception('[DefExpr.comp] Not yet supported:', self) # TODO: setExpr 
 
     self.text = text
     return self.text
 
 #************************************************************
 #* VarExpr **************************************************
+# (var, string name)
+# Gets a variable
 
 class VarExpr(Expr):
   def __init__(self, expr):
@@ -239,10 +267,13 @@ class VarExpr(Expr):
   def comp(self, scope):
     print(self)
     self.text = ''
-    return scope.findVar(self.name) # NOTE: Special
+    return scope.findVar(self.name) # NOTE: Special # TODO: Check like in exec?
 
 #************************************************************
 #* SetExpr **************************************************
+# (set, Expr into, Expr value)
+# Sets value into "into"
+# NOTE: For now into should be variable
 
 class SetExpr(Expr):
   def __init__(self, expr):
@@ -316,6 +347,8 @@ class SetExpr(Expr):
 
 #************************************************************
 #* CallExpr *************************************************
+# (call, string name)
+# Calls a function with that name
 
 class CallExpr(Expr):
   def __init__(self, expr):
@@ -354,6 +387,8 @@ class CallExpr(Expr):
 
 #************************************************************
 #* ReturnExpr ***********************************************
+# (return, Expr expr)
+# Exits from a function with the value of expr
 
 class ReturnExpr(Expr):
   def __init__(self, expr):
@@ -376,7 +411,7 @@ class ReturnExpr(Expr):
   def comp(self, scope):
     text = self.compComment()
 
-    res = self.expr.exec(scope)
+    res = self.expr.exec(scope) # TODO: Shouldn't this be comp? # URGENT
     if isinstance(self.expr, VarExpr):
       text += f'  mov rax, {res.reference()}\n'
     # elif isinstance(self.expr, ): # TODO: Other types
@@ -390,6 +425,8 @@ class ReturnExpr(Expr):
 
 #************************************************************
 #* IntrinsicExpr ********************************************
+# (int64, int64 value), (int32, int32 value)
+# Intrinsic types
 
 class IntrinsicExpr(Expr):
   def __init__(self, expr):
@@ -406,9 +443,11 @@ class IntrinsicExpr(Expr):
   def comp(self, scope):
     return self.value # TODO: Depends on the actual type
 
-#24
+#26, number of lines for the GenericExpr
 #************************************************************
 #* GenericExpr***********************************************
+# ()
+# Generic expression used only to copy and paste the skeleton code
 
 class GenericExpr(Expr):
   def __init__(self, expr):

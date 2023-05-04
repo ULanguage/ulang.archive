@@ -2,7 +2,7 @@ global _start
 
 section .data
 
-  ; (def, globA, None)
+  ; (def, globA, ())
 globA: dq 0
 
   ; (def, globB, (int64, 1))
@@ -12,7 +12,7 @@ section .text
 
   ; (fun, getGlob, int64, (1)...)
 getGlob:
-  ; Set the stack frame
+  ; Build the stack frame
   push rbp
   mov rbp, rsp
 
@@ -27,7 +27,7 @@ getGlob:
 
   ; (fun, setGlob, int64, (1)...)
 setGlob:
-  ; Set the stack frame
+  ; Build the stack frame
   push rbp
   mov rbp, rsp
 
@@ -42,7 +42,7 @@ setGlob:
   ; (fun, main, int64, (5)...)
 _start:
 main:
-  ; Set the stack frame
+  ; Build the stack frame
   push rbp
   mov rbp, rsp
   sub rsp, 8 ; 1 stack vars
