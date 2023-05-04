@@ -270,7 +270,15 @@ class ParamExpr(Expr):
     var = scope.findVar(self.name, localOnly = True)
     if var is None:
       var = self.define(scope)
-      var.value = self.value.exec(scope)
+      value = self.value.exec(scope)
+
+      # TODO: Repeated code with Set.exec and CallExpr.exec
+      # self.checkAndReplaceTypes(A, B, scope) # TODO ; URGENT
+
+      if isinstance(self.value, VarExpr):
+        var.value = value.value
+      # elif isinstance(self.value, ): # TODO: Other types? Pointers
+      else: var.value = value
 
     if var.value is None:
       raise Exception('[ParamExpr.exec]')
@@ -284,13 +292,25 @@ class ParamExpr(Expr):
     var = scope.findVar(self.name, localOnly = True)
     if var is None:
       var = self.define(scope)
-      if not isinstance(self.value, EmptyExpr):
-        text += self.compComment()
+      value = self.value.comp(scope)
 
-        # TODO: Execute set-like to the value but in the stack; URGENT
-        # NOTE: The following is just a temporary hack
-        value = self.value.comp(scope)
-        text += f'  push {value}\n'
+      # TODO: Repeated code with Set.comp
+      # self.checkAndReplaceTypes(A, B, scope) # TODO: URGENT
+
+      reg = 'rax' # TODO: Alloc a register
+      if isinstance(self.value, VarExpr):
+        text += f'  mov {reg}, {value.reference()}\n'
+      elif isinstance(self.value, CallExpr):
+        text += value
+        reg = 'rax' # TODO: Multiple returns
+      elif isinstance(self.value, IntrinsicExpr): # TODO: Depends on the type
+        reg = value
+      # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
+      # elif isinstance(self.value, ): # TODO: Other types
+      else:
+        text += f'  mov {reg}, {value}\n'
+
+      text += f'  push {reg}\n'
     
     self.text = text
     return self.text
@@ -472,7 +492,7 @@ class CallExpr(Expr):
 
     # TODO: Named args
     for idx, arg in enumerate(reversed(self.args)): # NOTE: Params are passed on the stack, thus they're reversed
-      param = fun.params[idx]
+      param = fun.params[idx] # TODO: Reversed and enumerate cause wrong idx!! URGENT
       # TODO: Exec a set ; URGENT
 
       var = param.define(sibling)

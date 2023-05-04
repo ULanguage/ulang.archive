@@ -2,7 +2,7 @@ global _start
 
 section .data
 
-  ; (def, globA, ())
+  ; (def, globA, (int64, 0))
 globA: dq 0
 
   ; (def, globB, (int64, 1))
@@ -25,7 +25,7 @@ getGlob:
   pop rbp
   ret
 
-  ; (fun, setGlob, int64, ((param, newValue, int64, (int64, 2)),), (1)...)
+  ; (fun, setGlob, int64, ((param, newValue, int64, (call, getGlob)),), (1)...)
 setGlob:
   ; Build the stack frame
   push rbp
@@ -54,8 +54,10 @@ main:
   ; (set, (var, ing), (int32, 5))
   mov qword [rsp + 0], 5
 
-  ; (call, setGlob, (var, ing))
-  mov rax, [rsp + 0]
+  ; (call, setGlob)
+
+  ; (call, getGlob)
+  call getGlob
   push rax
   call setGlob
 
