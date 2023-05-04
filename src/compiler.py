@@ -1,5 +1,6 @@
 from scope import Var, Scope
 from expr import DefExpr, ParamExpr
+from utils import log
 
 class CVar(Var):
   def __init__(self, reg, offset, _type = '', typeless = None):
@@ -30,7 +31,7 @@ class CScope(Scope):
     return [var for _, var in self.vars.items() if var.reg == reg]
 
 def Compile(fileExpr, to = 'main.asm'):
-  print('[Compile]', fileExpr, to)
+  log('[Compile]', fileExpr, to, level = 'debug')
 
   scope = CScope()
 

@@ -1,4 +1,5 @@
 from scope import Var, Scope
+from utils import log
 
 class IVar(Var):
   def __init__(self, value = None, _type = '', typeless = None):
@@ -15,8 +16,8 @@ class IScope(Scope):
     return IVar(_type = _def.type)
 
 def Execute(fileExpr):
-  print('[Execute]', fileExpr)
+  log('[Execute]', fileExpr, level = 'debug')
 
   scope = IScope()
   ret = fileExpr.exec(scope, isMain = True)
-  print(f'Exited with {ret}')
+  log(f'Exited with {ret}', level = 'user')

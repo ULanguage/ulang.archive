@@ -48,11 +48,11 @@ main:
   mov rbp, rsp
   sub rsp, 8 ; 1 stack vars
 
-  ; (def, ing, (int64, 4))
-  mov qword [rsp + 0], 4
+  ; (def, ing, (int64, 2))
+  mov qword [rsp + 0], 2
 
-  ; (set, (var, ing), (int32, 5))
-  mov qword [rsp + 0], 5
+  ; (set, (var, ing), (int32, 3))
+  mov qword [rsp + 0], 3
 
   ; (call, setGlob)
 

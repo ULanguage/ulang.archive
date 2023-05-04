@@ -1,4 +1,5 @@
 from copy import deepcopy
+from utils import log, error
 
 #************************************************************
 #* Expr *****************************************************
@@ -11,15 +12,15 @@ class Expr:
     return f'({self._expr[0]}, ({len(self._expr[1:])})...)'
   def define(self, scope):
     # U: Used to define this expression in the current scope
-    print('[define] TODO', self)
+    log('[define] TODO', self, level = 'error')
     return None
   def exec(self, scope):
     # U: Used to execute this expression in the interpreter
-    print('[exec] TODO', self)
+    log('[exec] TODO', self, level = 'error')
     return None
   def comp(self, scope):
     # U: Used to compile this expression
-    print('[comp] TODO', self)
+    log('[comp] TODO', self, level = 'error')
     self.text = ''
     return self.text
 
@@ -61,7 +62,7 @@ class FileExpr(Expr):
     return f'(file, {self.path}, ({len(self.exprs)})...)'
 
   def exec(self, scope, isMain = False):
-    print(self)
+    log(self, level = 'deepDebug')
 
     # Define vars, types, funs # TODO: Anything else? options, libname, import
     for expr in self.exprs:
@@ -81,7 +82,7 @@ class FileExpr(Expr):
     return None
 
   def comp(self, scope, isMain = False):
-    print(self)
+    log(self, level = 'deepDebug')
     self.data = ''
     self.text = ''
 
@@ -119,7 +120,7 @@ class FunExpr(Expr):
     scope.defFun(self)
 
   def exec(self, scope, isMain = False):
-    print(self)
+    log(self, level = 'deepDebug')
     # TODO: JIT?
 
     # Execute expressions in order
@@ -134,7 +135,7 @@ class FunExpr(Expr):
     return scope.ret
 
   def comp(self, scope, isMain = False):
-    print(self)
+    log(self, level = 'deepDebug')
     s = ''
 
     # TODO: If isMain instance global vars with (default) values
@@ -224,7 +225,7 @@ class DefExpr(Expr):
     # else: pass # TODO: Other types, queue for main to comp it
 
   def exec(self, scope):
-    print(self)
+    log(self, level = 'deepDebug')
 
     var = scope.findVar(self.name)
     if not isinstance(self.value, EmptyExpr):
@@ -233,7 +234,7 @@ class DefExpr(Expr):
     return var
 
   def comp(self, scope):
-    print(self)
+    log(self, level = 'deepDebug')
     text = self.compComment()
 
     self.define(scope)
@@ -242,7 +243,7 @@ class DefExpr(Expr):
     if isinstance(self.value, IntrinsicExpr): # TODO: Not all types
       text += f'  mov qword [{var.reg} + {var.offset}], {self.value.comp(scope)}\n' # TODO: qword depends on size # TODO: Isn't this also a setExpr?
     elif not isinstance(self.value, EmptyExpr):
-      raise Exception('[DefExpr.comp] Not yet supported:', self) # TODO: setExpr 
+      error('[DefExpr.comp] Not yet supported:', scope = scope, expr = self) # TODO: setExpr 
 
     self.text = text
     return self.text
@@ -265,7 +266,7 @@ class ParamExpr(Expr):
     return scope.defVar(self, local = True)
 
   def exec(self, scope):
-    print(self)
+    log(self, level = 'deepDebug')
 
     var = scope.findVar(self.name, localOnly = True)
     if var is None:
@@ -281,12 +282,12 @@ class ParamExpr(Expr):
       else: var.value = value
 
     if var.value is None:
-      raise Exception('[ParamExpr.exec]')
+      error('[ParamExpr.exec]', scope = scope, expr = self)
 
     return var
 
   def comp(self, scope):
-    print(self)
+    log(self, level = 'deepDebug')
     text = ''
 
     var = scope.findVar(self.name, localOnly = True)
@@ -328,18 +329,18 @@ class VarExpr(Expr):
     return f'(var, {self.name})'
 
   def exec(self, scope):
-    print(self)
+    log(self, level = 'deepDebug')
     return self.find(scope)
 
   def comp(self, scope):
-    print(self)
+    log(self, level = 'deepDebug')
     self.text = ''
     return self.find(scope) # NOTE: Special within comp, doesn't return any text
 
   def find(self, scope):
     var = scope.findVar(self.name)
     if var is None:
-      raise Exception('[VarExpr.find]')
+      error('[VarExpr.find]', scope = scope, expr = self)
     return var
 
 #************************************************************
@@ -358,7 +359,7 @@ class SetExpr(Expr):
     return f'(set, {self.A}, {self.B})'
 
   def exec(self, scope):
-    print(self)
+    log(self, level = 'deepDebug')
 
     A = self.A.exec(scope)
     B = self.B.exec(scope)
@@ -373,7 +374,7 @@ class SetExpr(Expr):
     return A
 
   def comp(self, scope):
-    print(self)
+    log(self, level = 'deepDebug')
     text = self.compComment()
 
     # TODO: Does the order matter?
@@ -402,21 +403,21 @@ class SetExpr(Expr):
 
   def checkAndReplaceTypes(self, A, B, scope): # TODO: Rename
     if not isinstance(self.A, VarExpr):
-      raise Exception('[SetExpr] A is not a var:', self)
+      error('[SetExpr] A is not a var:', scope = scope, expr = self)
 
     # TODO: Clean
     if isinstance(self.B, VarExpr) and A.type != B.type:
       if A.typeless: A.type = B.type
-      else: raise Exception('[SetExpr] Wrong types:', self)
+      else: error('[SetExpr] Wrong types:', scope = scope, expr = self)
     elif isinstance(self.B, IntrinsicExpr) and A.type != self.B.type:
       if A.typeless: A.type = self.B.type
-      else: raise Exception('[SetExpr] Wrong types:', self)
+      else: error('[SetExpr] Wrong types:', scope = scope, expr = self)
     elif isinstance(self.B, CallExpr):
       hack = Expr.construct(('fun', self.B.name, '', ())) 
       fun = scope.findFun(hack) # TODO: Use signature
       if A.type != fun.type:
         if A.typeless: A.type = fun.type
-        else: raise Exception('[SetExpr] Wrong types:', self)
+        else: error('[SetExpr] Wrong types:', scope = scope, expr = self)
     # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
     # elif isinstance(self.B, ): # TODO: Other types
 
@@ -438,7 +439,7 @@ class CallExpr(Expr):
     return f'(call, {self.name}{args})' 
 
   def exec(self, scope):
-    print(self)
+    log(self, level = 'deepDebug')
 
     hack = Expr.construct(('fun', self.name, '', ())) 
     fun = scope.findFun(hack) # TODO: Use signature
@@ -449,7 +450,7 @@ class CallExpr(Expr):
 
     # Pass args
     if len(self.args) > len(fun.params):
-      raise Exception('[CallExpr.exec] Too many args:', self)
+      error('[CallExpr.exec] Too many args:', scope = scope, expr = self)
 
     # TODO: Named args
     for idx, arg in enumerate(self.args):
@@ -478,7 +479,7 @@ class CallExpr(Expr):
     return fun.exec(sibling)
 
   def comp(self, scope):
-    print(self)
+    log(self, level = 'deepDebug')
     text = self.compComment()
   
     hack = Expr.construct(('fun', self.name, '', ())) 
@@ -490,7 +491,7 @@ class CallExpr(Expr):
 
     # Pass args
     if len(self.args) > len(fun.params):
-      raise Exception('[CallExpr.comp] Too many args:', self)
+      error('[CallExpr.comp] Too many args:', scope = scope, expr = self)
 
     # TODO: Named args
     for idx, arg in enumerate(reversed(self.args)): # NOTE: Params are passed on the stack, thus they're reversed
@@ -603,12 +604,12 @@ class GenericExpr(Expr):
     # pass
 
   def exec(self, scope):
-    print(self)
+    log(self, level = 'deepDebug')
 
     return None
 
   def comp(self, scope):
-    print(self)
+    log(self, level = 'deepDebug')
     text = self.compComment()
     
     self.text = text

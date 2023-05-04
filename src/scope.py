@@ -26,7 +26,7 @@ class Scope:
 
   def defFun(self, fun):
     if not self.findFun(fun) is None:
-      raise Exception('[defFun]')
+      error('[defFun]', scope = self, expr = fun)
     self.funs[fun.name] = fun # TODO: Define based on full name/params/resultType
 
   def findFun(self, fun):
@@ -39,7 +39,7 @@ class Scope:
   def defVar(self, _def, local = False):
     # TODO: Repeated code with defFun
     if not self.findVar(_def.name, localOnly = local) is None:
-      raise Exception('[defVar]')
+      error('[defVar]', local, scope = self, expr = _def)
     var = self.newVar(_def)
     self.vars[_def.name] = var
     return var
@@ -54,5 +54,5 @@ class Scope:
 
   def findMainFun(self):
     if not 'main' in self.funs: # NOTE: Only match based on name
-      raise Exception('[findMainFun]')
+      error('[findMainFun]', scope = self)
     return self.funs['main']
