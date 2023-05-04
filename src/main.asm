@@ -54,10 +54,10 @@ main:
   ; (set, (var, ing), (int32, 5))
   mov qword [rsp + 0], 5
 
-  ; (call, setGlob)
+  ; (call, setGlob, (int64, 3))
 
-  ; (param, newValue, int64, (int64, 2))
-  push 2
+  ; (int64, 3)
+  push 3
   call setGlob
 
   ; (set, (var, ing), (call, getGlob))

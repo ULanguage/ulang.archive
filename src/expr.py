@@ -407,8 +407,13 @@ class CallExpr(Expr):
   def __init__(self, expr):
     super().__init__(expr)
     self.name = expr[1]
+    self.args = [Expr.construct(arg) for arg in expr[2:]]
   def __repr__(self):
-    return f'(call, {self.name})'
+    args = ', '.join([str(arg) for arg in self.args])
+    if args != '':
+      args = ', ' + args
+
+    return f'(call, {self.name}{args})' 
 
   def exec(self, scope):
     print(self)
@@ -419,7 +424,19 @@ class CallExpr(Expr):
     sibling = scope.sibling()
 
     # TODO: Templated types
-    # TODO: Pass args
+
+    # Pass args
+    if len(self.args) > len(fun.params):
+      raise Exception('[CallExpr.exec] Too many args:', self)
+
+    # TODO: Named args
+    for idx, arg in enumerate(self.args):
+      param = fun.params[idx]
+      # TODO: Exec a set ; URGENT
+      # NOTE: The following is just a hack
+
+      var = param.define(sibling)
+      var.value = arg.exec(sibling)
 
     # Make sure all params are defined
     for param in fun.params:
@@ -437,7 +454,22 @@ class CallExpr(Expr):
     sibling = scope.sibling()
 
     # TODO: Templated types? Should've been compiled
-    # TODO: Pass args
+
+    # Pass args
+    if len(self.args) > len(fun.params):
+      raise Exception('[CallExpr.comp] Too many args:', self)
+
+    # TODO: Named args
+    for idx, arg in enumerate(reversed(self.args)): # NOTE: Params are passed on the stack, thus they're reversed
+      param = fun.params[idx]
+      # TODO: Exec a set ; URGENT
+      # NOTE: The following is just a hack
+
+      var = param.define(sibling)
+      text += arg.compComment()
+
+      value = arg.comp(sibling)
+      text += f'  push {value}\n'
 
     # Make sure all params are defined
     for param in reversed(fun.params): # NOTE: Params are passed on the stack, thus they're reversed
