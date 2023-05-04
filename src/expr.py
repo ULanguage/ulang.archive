@@ -433,10 +433,21 @@ class CallExpr(Expr):
     for idx, arg in enumerate(self.args):
       param = fun.params[idx]
       # TODO: Exec a set ; URGENT
+  
       # NOTE: The following is just a hack
+      # hack = Expr.construct(('param', param.name, param.type, arg))
+      # text += hack.exec(sibling)
 
       var = param.define(sibling)
-      var.value = arg.exec(sibling)
+      value = arg.exec(scope)
+
+      # TODO: Repeated code with Set.exec
+      # self.checkAndReplaceTypes(A, B, scope) # TODO ; URGENT
+
+      if isinstance(arg, VarExpr):
+        var.value = value.value
+      # elif isinstance(arg, ): # TODO: Other types? Pointers
+      else: var.value = value
 
     # Make sure all params are defined
     for param in fun.params:
@@ -463,13 +474,26 @@ class CallExpr(Expr):
     for idx, arg in enumerate(reversed(self.args)): # NOTE: Params are passed on the stack, thus they're reversed
       param = fun.params[idx]
       # TODO: Exec a set ; URGENT
-      # NOTE: The following is just a hack
 
       var = param.define(sibling)
-      text += arg.compComment()
+      value = arg.comp(scope)
 
-      value = arg.comp(sibling)
-      text += f'  push {value}\n'
+      # TODO: Repeated code with Set.comp
+      # self.checkAndReplaceTypes(A, B, scope) # TODO: URGENT
+
+      reg = 'rax' # TODO: Alloc a register
+      if isinstance(arg, VarExpr):
+        text += f'  mov {reg}, {value.reference()}\n'
+      elif isinstance(arg, CallExpr):
+        text += value
+        reg = 'rax' # TODO: Multiple returns
+      elif isinstance(arg, IntrinsicExpr): # TODO: Depends on the type
+        reg = value
+      # elif isinstance(arg, ): # TODO: Other types
+      else:
+        text += f'  mov {reg}, {value}\n'
+
+      text += f'  push {reg}\n'
 
     # Make sure all params are defined
     for param in reversed(fun.params): # NOTE: Params are passed on the stack, thus they're reversed
