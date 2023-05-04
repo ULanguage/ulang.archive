@@ -390,6 +390,7 @@ class SetExpr(Expr):
       reg = 'rax' # TODO: Multiple returns
     elif isinstance(self.B, IntrinsicExpr): # TODO: Depends on the type
       reg = B
+    # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
     # elif isinstance(self.B, ): # TODO: Other types
     else:
       text += f'  mov {reg}, {B}\n'
@@ -416,6 +417,7 @@ class SetExpr(Expr):
       if A.type != fun.type:
         if A.typeless: A.type = fun.type
         else: raise Exception('[SetExpr] Wrong types:', self)
+    # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
     # elif isinstance(self.B, ): # TODO: Other types
 
 #************************************************************
@@ -509,6 +511,7 @@ class CallExpr(Expr):
         reg = 'rax' # TODO: Multiple returns
       elif isinstance(arg, IntrinsicExpr): # TODO: Depends on the type
         reg = value
+      # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
       # elif isinstance(arg, ): # TODO: Other types
       else:
         text += f'  mov {reg}, {value}\n'
@@ -542,6 +545,7 @@ class ReturnExpr(Expr):
       res = res.value
     elif isinstance(self.expr, IntrinsicExpr):
       res = self.expr
+    # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
     # elif isinstance(self.expr, ): # TODO: Other types
 
     scope.ret = res
@@ -553,6 +557,7 @@ class ReturnExpr(Expr):
     res = self.expr.comp(scope) # TODO: Shouldn't this be comp? # URGENT
     if isinstance(self.expr, VarExpr):
       text += f'  mov rax, {res.reference()}\n'
+    # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
     # elif isinstance(self.expr, ): # TODO: Other types
     else:
       text += f'  mov rax, {res}\n'
