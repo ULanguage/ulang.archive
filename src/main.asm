@@ -16,8 +16,8 @@ getGlob:
   push rbp
   mov rbp, rsp
 
-  ; (return, (var, globB))
-  mov rax, [globB]
+  ; (return, (var, globA))
+  mov rax, [globA]
   jmp .__ret
 
 .__ret:
@@ -31,16 +31,15 @@ setGlob:
   push rbp
   mov rbp, rsp
 
-  ; (return, (int64, 3))
-  mov rax, 3
-  jmp .__ret
+  ; (set, (var, globA), (int64, 2))
+  mov qword [globA], 2
 
 .__ret:
   ; Remove the stack frame
   pop rbp
   ret
 
-  ; (fun, main, int64, (4)...)
+  ; (fun, main, int64, (5)...)
 _start:
 main:
   ; Set the stack frame
@@ -53,6 +52,9 @@ main:
 
   ; (set, (var, ing), (int32, 5))
   mov qword [rsp + 0], 5
+
+  ; (call, setGlob)
+  call setGlob
 
   ; (set, (var, ing), (call, getGlob))
 

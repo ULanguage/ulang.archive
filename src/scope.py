@@ -12,7 +12,7 @@ class Scope:
     self.funs = dict()
     self.vars = dict()
 
-    self.res = None
+    self.ret = None
     self.returned = False
 
   def __repr__(self):
