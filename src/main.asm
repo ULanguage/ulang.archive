@@ -10,7 +10,7 @@ globB: dq 1
 
 section .text
 
-  ; (fun, getGlob, int64, (1)...)
+  ; (fun, getGlob, int64, (), (1)...)
 getGlob:
   ; Build the stack frame
   push rbp
@@ -25,21 +25,22 @@ getGlob:
   pop rbp
   ret
 
-  ; (fun, setGlob, int64, (1)...)
+  ; (fun, setGlob, int64, ((param, newValue, int64, (int64, 2)),), (1)...)
 setGlob:
   ; Build the stack frame
   push rbp
   mov rbp, rsp
 
-  ; (set, (var, globA), (int64, 2))
-  mov qword [globA], 2
+  ; (set, (var, globA), (var, newValue))
+  mov rax, [rbp + 16]
+  mov qword [globA], rax
 
 .__ret:
   ; Remove the stack frame
   pop rbp
   ret
 
-  ; (fun, main, int64, (5)...)
+  ; (fun, main, int64, (), (5)...)
 _start:
 main:
   ; Build the stack frame
@@ -54,6 +55,9 @@ main:
   mov qword [rsp + 0], 5
 
   ; (call, setGlob)
+
+  ; (param, newValue, int64, (int64, 2))
+  push 2
   call setGlob
 
   ; (set, (var, ing), (call, getGlob))

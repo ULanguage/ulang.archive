@@ -1,4 +1,5 @@
 from scope import Var, Scope
+from expr import DefExpr, ParamExpr
 
 class CVar(Var):
   def __init__(self, reg, offset, _type = '', typeless = False):
@@ -17,8 +18,8 @@ class CScope(Scope):
     super().__init__(parent)
 
   def newVar(self, _def):
-    reg = 'rsp' # TODO: rbp if param
-    offset = (len(self.varsWithReg(reg)) + int(reg == 'rbp')) * 8 # TODO: 8 depends on each var's size
+    reg = 'rsp' if isinstance(_def, DefExpr) else 'rbp'
+    offset = (len(self.varsWithReg(reg)) + 2 * int(reg == 'rbp')) * 8 # TODO: 8 depends on each var's size
     if self.parent is None:
       reg = 'global'
       offset = _def.name

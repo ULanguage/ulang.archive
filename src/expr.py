@@ -102,7 +102,7 @@ class FileExpr(Expr):
 
 #************************************************************
 #* FunExpr **************************************************
-# (fun, string name, Type returnType, Expr exprs...)
+# (fun, string name, Type returnType, (Param params...), Expr exprs...)
 # Describes a function, the expressions are it's actual code
 
 class FunExpr(Expr):
@@ -110,9 +110,10 @@ class FunExpr(Expr):
     super().__init__(expr)
     self.name = expr[1]
     self.type = expr[2]
-    self.exprs = [Expr.construct(_expr) for _expr in expr[3:]]
+    self.params = [Expr.construct(_expr) for _expr in expr[3]]
+    self.exprs = [Expr.construct(_expr) for _expr in expr[4:]]
   def __repr__(self):
-    return f'(fun, {self.name}, {self.type}, ({len(self.exprs)})...)'
+    return f'(fun, {self.name}, {self.type}, {tuple(self.params)}, ({len(self.exprs)})...)'
 
   def define(self, scope):
     scope.defFun(self)
@@ -137,7 +138,10 @@ class FunExpr(Expr):
     s = ''
 
     # TODO: If isMain instance global vars with (default) values
-    # TODO: Params
+
+    # NOTE: Assumes params exist
+    for param in self.params:
+      param.define(scope)
 
     # Compile expressions in order
     for expr in self.exprs:
@@ -244,6 +248,54 @@ class DefExpr(Expr):
     return self.text
 
 #************************************************************
+#* ParamExpr ************************************************
+# (param, string name, Type type, Expr defaultValue)
+# Function parameter
+
+class ParamExpr(Expr):
+  def __init__(self, expr):
+    super().__init__(expr)
+    self.name = expr[1]
+    self.type = expr[2]
+    self.value = Expr.construct(expr[3])
+  def __repr__(self):
+    return f'(param, {self.name}, {self.type}, {self.value})'
+
+  def define(self, scope):
+    return scope.defVar(self, local = True)
+
+  def exec(self, scope):
+    print(self)
+
+    var = scope.findVar(self.name, localOnly = True)
+    if var is None:
+      var = self.define(scope)
+      var.value = self.value.exec(scope)
+
+    if var.value is None:
+      raise Exception('[ParamExpr.exec]')
+
+    return var
+
+  def comp(self, scope):
+    print(self)
+    text = ''
+
+    var = scope.findVar(self.name, localOnly = True)
+    if var is None:
+      var = self.define(scope)
+      if not isinstance(self.value, EmptyExpr):
+        text += self.compComment()
+
+        # TODO: Execute set-like to the value but in the stack; URGENT
+        # NOTE: The following is just a temporary hack
+        value = self.value.comp(scope)
+        text += f'  push {value}\n'
+    
+    self.text = text
+    return self.text
+
+#************************************************************
 #* VarExpr **************************************************
 # (var, string name)
 # Gets a variable
@@ -339,7 +391,7 @@ class SetExpr(Expr):
       if A.typeless: A.type = self.B.type
       else: raise Exception('[SetExpr] Wrong types:', self)
     elif isinstance(self.B, CallExpr):
-      hack = Expr.construct(('fun', self.B.name, '')) 
+      hack = Expr.construct(('fun', self.B.name, '', ())) 
       fun = scope.findFun(hack) # TODO: Use signature
       if A.type != fun.type:
         if A.typeless: A.type = fun.type
@@ -361,13 +413,17 @@ class CallExpr(Expr):
   def exec(self, scope):
     print(self)
 
-    hack = Expr.construct(('fun', self.name, '')) 
+    hack = Expr.construct(('fun', self.name, '', ())) 
     fun = scope.findFun(hack) # TODO: Use signature
 
     sibling = scope.sibling()
 
     # TODO: Templated types
-    # TODO: Params
+    # TODO: Pass args
+
+    # Make sure all params are defined
+    for param in fun.params:
+      param.exec(sibling)
 
     return fun.exec(sibling)
 
@@ -375,11 +431,17 @@ class CallExpr(Expr):
     print(self)
     text = self.compComment()
   
-    hack = Expr.construct(('fun', self.name, '')) 
+    hack = Expr.construct(('fun', self.name, '', ())) 
     fun = scope.findFun(hack) # TODO: Use signature
 
+    sibling = scope.sibling()
+
     # TODO: Templated types? Should've been compiled
-    # TODO: Params
+    # TODO: Pass args
+
+    # Make sure all params are defined
+    for param in reversed(fun.params): # NOTE: Params are passed on the stack, thus they're reversed
+      text += param.comp(sibling)
 
     text += f'  call {fun.name}\n'
     
@@ -479,6 +541,7 @@ Types = {
 
   'fun': FunExpr,
   'def': DefExpr,
+  'param': ParamExpr,
   'var': VarExpr,
 
   'set': SetExpr,

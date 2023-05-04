@@ -35,19 +35,19 @@ class Scope:
       return self.parent.findFun(fun)
     return None
 
-  def defVar(self, _def):
+  def defVar(self, _def, local = False):
     # TODO: Repeated code with defFun
-    if not self.findVar(_def.name) is None:
+    if not self.findVar(_def.name, localOnly = local) is None:
       raise Exception('[defVar]')
     var = self.newVar(_def)
     self.vars[_def.name] = var
     return var
 
-  def findVar(self, name):
+  def findVar(self, name, localOnly = False):
     # TODO: Repeated code with findFun
     if name in self.vars:
       return self.vars[name]
-    if not self.parent is None:
+    if not localOnly and not self.parent is None:
       return self.parent.findVar(name)
     return None
 
