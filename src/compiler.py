@@ -2,8 +2,8 @@ from scope import Var, Scope
 from expr import DefExpr, ParamExpr
 
 class CVar(Var):
-  def __init__(self, reg, offset, _type = '', typeless = False):
-    super().__init__(_type, typeless) # TODO: Can CVars be typeless
+  def __init__(self, reg, offset, _type = '', typeless = None):
+    super().__init__(_type, typeless)
     self.reg = reg
     self.offset = offset 
   def __repr__(self):

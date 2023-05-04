@@ -1,7 +1,7 @@
 from scope import Var, Scope
 
 class IVar(Var):
-  def __init__(self, value = None, _type = '', typeless = False):
+  def __init__(self, value = None, _type = '', typeless = None):
     super().__init__(_type, typeless)
     self.value = value
   def __repr__(self):

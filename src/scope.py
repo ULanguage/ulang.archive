@@ -1,7 +1,8 @@
 class Var:
-  def __init__(self, _type = '', typeless = False):
+  def __init__(self, _type = '', typeless = None):
     self.type = _type
-    self.typeless = typeless or _type == ''
+    self.typeless = self.type == '' if typeless is None else typeless
+
   def __repr__(self):
     return f'var<{self.type}, {self.typeless}>'
 
