@@ -175,13 +175,13 @@ class FunExpr(Expr):
     text += '  push rbp\n'
     text += '  mov rbp, rsp\n'
 
-    l = len(scope.varsWithReg('rsp'))
+    l = len(scope.varsWithPlace('def'))
     if l != 0:
       text += f'  sub rsp, {l * 8} ; {l} stack vars\n' # TODO: Based on each variable's length
     return text
 
   def textRet(self, scope, isMain):
-    l = len(scope.varsWithReg('rsp'))
+    l = len(scope.varsWithPlace('def'))
     text = '.__ret:\n'
     text += '  ; Remove the stack frame\n'
     if l != 0:
@@ -241,7 +241,7 @@ class DefExpr(Expr):
     var = scope.findVar(self.name)
 
     if isinstance(self.value, IntrinsicExpr): # TODO: Not all types
-      text += f'  mov qword [{var.reg} + {var.offset}], {self.value.comp(scope)}\n' # TODO: qword depends on size # TODO: Isn't this also a setExpr?
+      text += f'  mov qword [{var.reference}], {self.value.comp(scope)}\n' # TODO: qword depends on size # TODO: Isn't this also a setExpr?
     elif not isinstance(self.value, EmptyExpr):
       error('[DefExpr.comp] Not yet supported:', scope = scope, expr = self) # TODO: setExpr 
 
@@ -517,7 +517,7 @@ class ReturnExpr(Expr):
 
     res = self.expr.comp(scope)
     if isinstance(self.expr, VarExpr):
-      text += f'  mov rax, [{res.reference()}]\n'
+      text += f'  mov rax, [{res.reference}]\n'
     # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
     # elif isinstance(self.expr, ): # TODO: Other types
     else:

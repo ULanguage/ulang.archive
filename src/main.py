@@ -25,9 +25,9 @@ if __name__ == '__main__':
     ), # }
 
     # fun setGlob(int64 newValue = getGlob())) {
-    ('fun', 'setGlob', 'int64', (('param', 'var', '*int64', ()),),
+    ('fun', 'setGlob', 'int64', (('param', 'var', '*int64', ()), ('param', 'newValue', 'int64', ())),
       # ('debug', 'debug', (), (('var', 'var'), ('deref', ('var', 'var')), ('var', 'newValue'))),
-      ('set', ('deref', ('var', 'var')), ('int64', 4)),
+      ('set', ('deref', ('var', 'var')), ('var', 'newValue')),
       # ('debug', 'debug', (), (('var', 'var'), ('deref', ('var', 'var')), ('var', 'newValue'))),
       # globA = newValue
       # ('set', ('var', 'globA'), ('var', 'newValue')),
@@ -42,7 +42,7 @@ if __name__ == '__main__':
       ('set', ('var', 'ing'), ('int64', 3)),
 
       # setGlob()
-      ('call', 'setGlob', ('ref', ('var', 'ing'))),
+      ('call', 'setGlob', ('ref', ('var', 'ing')), ('int64', 5)),
 
       # ing = getGlob()
       # ('set', ('var', 'ing'), ('call', 'getGlob')),

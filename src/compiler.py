@@ -3,20 +3,15 @@ from expr import *
 from debug import log
 
 class CVar(Var):
-  def __init__(self, reg, offset, _type = '', typeless = None):
+  def __init__(self, place, reference, _type = '', typeless = None):
     super().__init__(_type, typeless)
-    self.reg = reg
-    self.offset = offset 
+    self.place = place
+    self.reference = reference
   def __repr__(self):
-    return f'cvar<{self.reg}, {self.offset}, {self.type}, {self.typeless}>'
+    return f'cvar<{self.place}, {self.reference}, {self.type}, {self.typeless}>'
 
   def pointer(self):
-    return CVar(self.reg, self.offset, '*' + self.type, False)
-
-  def reference(self):
-    reg, offset = self.reg, self.offset # Rename
-    if reg == 'global': return f'{offset}'
-    else: return f'{reg} + {offset}'
+    return CVar(self.place, self.reference, '*' + self.type, False) # TODO: Place?
 
   def set(self, newValue, selfExpr, newExpr, scope, asArg = False):
     self.checkAndReplaceTypes(newValue, selfExpr, newExpr, scope)
@@ -24,9 +19,9 @@ class CVar(Var):
     text = ''
     reg = 'rax' # TODO: Alloc a register
     if isinstance(newExpr, VarExpr) or isinstance(newExpr, DerefExpr):
-      text += f'  mov {reg}, [{newValue.reference()}]\n'
+      text += f'  mov {reg}, [{newValue.reference}]\n'
     elif isinstance(newExpr, RefExpr):
-      text += f'  mov {reg}, {newValue.reference()}\n'
+      text += f'  mov {reg}, {newValue.reference}\n'
     elif isinstance(newExpr, CallExpr):
       text += newValue
       reg = 'rax' # TODO: Multiple returns
@@ -41,10 +36,10 @@ class CVar(Var):
       text += f'  push {reg}\n'
     elif isinstance(selfExpr, DerefExpr):
       reg2 = 'rbx' # TODO: Alloc register
-      text += f'  mov qword {reg2}, [{self.reference()}]\n' # TODO: qword depends on type
+      text += f'  mov qword {reg2}, [{self.reference}]\n' # TODO: qword depends on type
       text += f'  mov qword [{reg2}], {reg}\n' # TODO: qword depends on type
     else:
-      text += f'  mov qword [{self.reference()}], {reg}\n' # TODO: qword depends on type
+      text += f'  mov qword [{self.reference}], {reg}\n' # TODO: qword depends on type
 
     # TODO: Free reg?
 
@@ -55,16 +50,22 @@ class CScope(Scope):
     super().__init__(parent)
 
   def newVar(self, _def):
-    reg = 'rsp' if isinstance(_def, DefExpr) else 'rbp'
-    offset = (len(self.varsWithReg(reg)) + 2 * int(reg == 'rbp')) * 8 # TODO: 8 depends on each var's size
-    if self.parent is None:
-      reg = 'global'
-      offset = _def.name
+    place = 'def' if isinstance(_def, DefExpr) else 'param'
 
-    return CVar(reg, offset, _def.type)
+    # TODO: Clean
+    offset = (len(self.varsWithPlace(place)) + 2 * int(place == 'param')) * 8 # TODO: 8 depends on each var's size
+    if place == 'def': # Below rbp
+      offset = -offset
+    reference = f'rbp + {offset}'
 
-  def varsWithReg(self, reg):
-    return [var for _, var in self.vars.items() if var.reg == reg]
+    if self.parent is None and isinstance(_def, DefExpr):
+      place = 'global'
+      reference = _def.name
+
+    return CVar(place, reference, _def.type)
+
+  def varsWithPlace(self, place):
+    return [var for _, var in self.vars.items() if var.place == place]
 
 def Compile(fileExpr, to = 'main.asm'):
   log('[Compile]', fileExpr, to, level = 'debug')
