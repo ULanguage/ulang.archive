@@ -1,9 +1,12 @@
 from compiler import Compile
 from interpreter import Execute
 from expr import Expr
+from utils import parseArgs
 
 if __name__ == '__main__':
-  main = Expr.construct(('file', 'main.u',
+  args = parseArgs()
+
+  main = Expr.construct(('file', 'main.u', # TODO: Read file
     # int64 globA = 0
     ('def', 'globA', 'int64', ('int64', 0)),
 
@@ -41,5 +44,7 @@ if __name__ == '__main__':
     ), # }
   ))
 
-  Execute(main)
-  Compile(main, 'main.asm')
+  if args.compile:
+    Compile(main, args.o)
+  else:
+    Execute(main)

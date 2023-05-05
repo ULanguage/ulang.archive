@@ -24,15 +24,13 @@ USRC = filesWithExtension('.u')
 ############################################################
 # Tasks ####################################################
 
-def TaskrunExec():
+def Taskexec():
   return {
-    'deps': PYSRC + USRC, # TODO: USRC
-    'outs': [ASMSRC],
+    'deps': PYSRC + USRC,
     'capture': 1,
 
     'actions': [
       f'python {SRCD}/main.py',
-      f'mv main.asm {ASMSRC}', # TODO
     ],
   }
 
@@ -40,12 +38,12 @@ def Taskcomp():
   oPath = ASMSRC[:-3] + "o"
 
   return {
-    'deps': [ASMSRC], # TODO: USRC & PYSRC
-    'outs': [BUILDD, oPath, BIN],
+    'outs': [BUILDD, ASMSRC, oPath, BIN],
     'capture': 1,
 
     'actions': [
       f'mkdir -p {BUILDD}',
+      f'python {SRCD}/main.py --compile -o {ASMSRC}',
       f'nasm -felf64 {ASMSRC}',
       f'ld {oPath} -o {BIN}',
     ],
