@@ -537,6 +537,49 @@ class ReturnExpr(Expr):
     return self.text
 
 #************************************************************
+#* IfExpr ***************************************************
+# (if, Expr cond, (Expr truePath...), (Expr falsePath...))
+
+class IfExpr(Expr):
+  def __init__(self, expr):
+    super().__init__(expr)
+    self.cond = Expr.construct(expr[1])
+    self.truePath = [Expr.construct(subexpr) for subexpr in expr[2]]
+    self.falsePath = [Expr.construct(subexpr) for subexpr in expr[3]]
+  def __repr__(self):
+    return f'(if, {self.cond}, ({len(self.truePath)})..., ({len(self.falsePath)}...))'
+
+  def exec(self, scope):
+    log(self, level = 'deepDebug')
+
+    child = scope.child()
+
+    cond = self.cond.exec(child)
+    path = False
+    if isinstance(self.cond, VarExpr):
+      path = bool(cond.value)
+    else:
+      path = bool(cond)
+
+    for expr in (self.truePath if path else self.falsePath):
+      expr.exec(child)
+      if child.returned or child.broke:
+        break
+
+    if child.returned:
+      scope.ret = child.ret
+      scope.returned = True
+
+    return path
+
+  def comp(self, scope):
+    log(self, level = 'deepDebug')
+    text = self.compComment()
+    
+    self.text = text
+    return self.text
+
+#************************************************************
 #* ArithmExpr ***********************************************
 # (+, Expr x, Expr y)
 # (-, Expr x, Expr y)
@@ -726,6 +769,8 @@ ExprTypes = {
   'set': SetExpr,
   'call': CallExpr,
   'return': ReturnExpr,
+
+  'if': IfExpr,
 
   '+': ArithmExpr,
   '-': ArithmExpr,

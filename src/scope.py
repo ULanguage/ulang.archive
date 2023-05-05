@@ -41,6 +41,7 @@ class Scope:
 
     self.ret = None
     self.returned = False
+    self.broke = False
 
   def __repr__(self):
     return f'Scope<{not self.parent is None}, {list(self.funs.keys())}, {list(self.vars.keys())}>'
