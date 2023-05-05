@@ -34,11 +34,9 @@ if __name__ == '__main__':
     ('fun', 'main', 'int64', (),
       # var ing = 2
       ('def', 'ing', '', ('int64', 2)),
-      # int64 foo = 1
-      ('def', 'foo', 'int64', ('int64', 4)),
 
-      # ing = 3
-      ('set', ('var', 'ing'), ('int64', 3)),
+      # ing = 31
+      ('set', ('var', 'ing'), ('int64', 31)),
 
       # setGlob(&ing)
       ('call', 'setGlob', ('ref', ('var', 'ing'))),
@@ -46,8 +44,13 @@ if __name__ == '__main__':
       # ing = getGlob()
       # ('set', ('var', 'ing'), ('call', 'getGlob')),
 
+      # ing = 31
+      ('set', ('var', 'ing'), ('int64', 31)),
+      # int64 foo = 4
+      ('def', 'foo', 'int64', ('int64', 4)),
+
       # return ing + var
-      ('return', ('+', ('var', 'ing'), ('deref', ('ref', ('var', 'foo'))))),
+      ('return', ('%', ('var', 'ing'), ('var', 'foo'))),
     ), # }
   ))
 

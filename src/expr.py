@@ -229,7 +229,10 @@ class DefExpr(Expr):
 
     var = scope.findVar(self.name)
     if not isinstance(self.value, EmptyExpr):
-      var.value = self.value.exec(scope)
+      value = self.value.exec(scope)
+
+      hack = Expr.construct(('var', self.name)) # TODO
+      var.set(value, hack, self.value, scope)
 
     return var
 
@@ -241,7 +244,9 @@ class DefExpr(Expr):
     var = scope.findVar(self.name)
 
     if isinstance(self.value, IntrinsicExpr): # TODO: Not all types
-      text += f'  mov qword [{var.reference}], {self.value.comp(scope)}\n' # TODO: qword depends on size # TODO: Isn't this also a setExpr?
+      value = self.value.comp(scope)
+      hack = Expr.construct(('var', self.name)) # TODO
+      text += var.set(value, hack, self.value, scope)
     elif not isinstance(self.value, EmptyExpr):
       error('[DefExpr.comp] Not yet supported:', scope = scope, expr = self) # TODO: setExpr 
 
