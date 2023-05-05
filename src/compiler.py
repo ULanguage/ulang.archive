@@ -9,32 +9,42 @@ class CVar(Var):
     self.offset = offset 
   def __repr__(self):
     return f'cvar<{self.reg}, {self.offset}, {self.type}, {self.typeless}>'
+
+  def pointer(self):
+    return CVar(self.reg, self.offset, '*' + self.type, False)
+
   def reference(self):
     reg, offset = self.reg, self.offset # Rename
-    if reg == 'global': return f'[{offset}]'
-    else: return f'[{reg} + {offset}]'
+    if reg == 'global': return f'{offset}'
+    else: return f'{reg} + {offset}'
 
-  def set(self, newValue, expr, scope, asArg = False):
-    self.checkAndReplaceTypes(newValue, expr, scope)
+  def set(self, newValue, selfExpr, newExpr, scope, asArg = False):
+    self.checkAndReplaceTypes(newValue, selfExpr, newExpr, scope)
 
     text = ''
     reg = 'rax' # TODO: Alloc a register
-    if isinstance(expr, VarExpr):
+    if isinstance(newExpr, VarExpr) or isinstance(newExpr, DerefExpr):
+      text += f'  mov {reg}, [{newValue.reference()}]\n'
+    elif isinstance(newExpr, RefExpr):
       text += f'  mov {reg}, {newValue.reference()}\n'
-    elif isinstance(expr, CallExpr):
+    elif isinstance(newExpr, CallExpr):
       text += newValue
       reg = 'rax' # TODO: Multiple returns
-    elif isinstance(expr, IntrinsicExpr): # TODO: Depends on the type
+    elif isinstance(newExpr, IntrinsicExpr): # TODO: Depends on the type
       reg = newValue
-    # elif isinstance(expr, EmptyExpr): # TODO: URGENT
-    # elif isinstance(expr, ): # TODO: Other types
+    # elif isinstance(newExpr, EmptyExpr): # TODO: URGENT
+    # elif isinstance(newExpr, ): # TODO: Other types
     else:
       text += f'  mov {reg}, {newValue}\n'
 
     if asArg:
       text += f'  push {reg}\n'
+    elif isinstance(selfExpr, DerefExpr):
+      reg2 = 'rbx' # TODO: Alloc register
+      text += f'  mov qword {reg2}, [{self.reference()}]\n' # TODO: qword depends on type
+      text += f'  mov qword [{reg2}], {reg}\n' # TODO: qword depends on type
     else:
-      text += f'  mov qword {self.reference()}, {reg}\n' # TODO: qword depends on type
+      text += f'  mov qword [{self.reference()}], {reg}\n' # TODO: qword depends on type
 
     # TODO: Free reg?
 

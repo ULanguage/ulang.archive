@@ -272,7 +272,7 @@ class ParamExpr(Expr):
     if var is None:
       var = self.define(scope)
       value = self.value.exec(scope)
-      var.set(value, self.value, scope)
+      var.set(value, self, self.value, scope)
 
     if var.value is None:
       error('[ParamExpr.exec]', scope = scope, expr = self)
@@ -287,7 +287,7 @@ class ParamExpr(Expr):
     if var is None:
       var = self.define(scope)
       value = self.value.comp(scope)
-      text += var.set(value, self.value, scope, asArg = True)
+      text += var.set(value, self, self.value, scope, asArg = True)
     
     self.text = text
     return self.text
@@ -310,7 +310,6 @@ class VarExpr(Expr):
 
   def comp(self, scope):
     log(self, level = 'deepDebug')
-    self.text = ''
     return self.find(scope) # NOTE: Special within comp, doesn't return any text
 
   def find(self, scope):
@@ -318,6 +317,61 @@ class VarExpr(Expr):
     if var is None:
       error('[VarExpr.find]', scope = scope, expr = self)
     return var
+
+#************************************************************
+#* RefExpr **************************************************
+# (ref, Expr expr)
+# Returns a pointer to whatever is returned by expr (only variables for now)
+
+class RefExpr(Expr):
+  def __init__(self, expr):
+    super().__init__(expr)
+    self.expr = Expr.construct(expr[1])
+  def __repr__(self):
+    return f'(ref, {self.expr})'
+
+  def exec(self, scope):
+    log(self, level = 'deepDebug')
+    var = self.expr.exec(scope)
+    return var.pointer()
+
+  def comp(self, scope):
+    log(self, level = 'deepDebug')
+    var = self.expr.comp(scope)
+    return var.pointer()
+
+#************************************************************
+#* DerefExpr **************************************************
+# (deref, Expr expr)
+# Returns the value pointed to by a pointer
+
+class DerefExpr(Expr):
+  def __init__(self, expr):
+    super().__init__(expr)
+    self.expr = Expr.construct(expr[1])
+  def __repr__(self):
+    return f'(deref, {self.expr})'
+
+  def exec(self, scope):
+    log(self, level = 'deepDebug')
+
+    var = self.expr.exec(scope)
+    if not var.isPointer():
+      error('[DerefExpr.exec] Var is not a pointer:', var, scope = scope, expr = self)
+
+    return var.value
+
+  def comp(self, scope):
+    log(self, level = 'deepDebug')
+
+    var = self.expr.comp(scope)
+    if not var.isPointer():
+      error('[DerefExpr.comp] Var is not a pointer:', var, scope = scope, expr = self)
+
+    res = deepcopy(var)
+    res.type = var.type[1:]
+
+    return res
 
 #************************************************************
 #* SetExpr **************************************************
@@ -339,7 +393,7 @@ class SetExpr(Expr):
 
     A = self.A.exec(scope)
     B = self.B.exec(scope)
-    A.set(B, self.B, scope)
+    A.set(B, self.A, self.B, scope)
 
     return A
 
@@ -351,7 +405,7 @@ class SetExpr(Expr):
     A = self.A.comp(scope) 
     B = self.B.comp(scope)
 
-    text += A.set(B, self.B, scope)
+    text += A.set(B, self.A, self.B, scope)
     
     self.text = text
     return self.text
@@ -393,7 +447,7 @@ class CallExpr(Expr):
 
       var = param.define(sibling)
       value = arg.exec(scope)
-      var.set(value, arg, scope)
+      var.set(value, param, arg, scope)
 
     # Make sure all params are defined
     for param in fun.params:
@@ -424,11 +478,12 @@ class CallExpr(Expr):
         var = param.define(sibling)
         value = arg.comp(scope)
 
-        text += var.set(value, arg, scope, asArg = True)
+        text += var.set(value, param, arg, scope, asArg = True)
       else:
         text += param.comp(sibling)
 
     text += f'  call {fun.name}\n'
+    text += f'  add rsp, {len(fun.params) * 8}\n' # Restore the stack # TODO: Depends on the size of the params
     
     self.text = text
     return self.text
@@ -462,7 +517,7 @@ class ReturnExpr(Expr):
 
     res = self.expr.comp(scope)
     if isinstance(self.expr, VarExpr):
-      text += f'  mov rax, {res.reference()}\n'
+      text += f'  mov rax, [{res.reference()}]\n'
     # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
     # elif isinstance(self.expr, ): # TODO: Other types
     else:
@@ -515,33 +570,13 @@ class DebugExpr(Expr):
   def exec(self, scope):
     self.debug(scope)
   def comp(self, scope):
-    self.debug(scope)
+    # self.debug(scope) # TODO
     return ''
 
   def debug(self, scope):
     results = [expr.exec(scope) for expr in self.exprs]
     debugStep(*self.args, *results, level = self.level)
 
-#************************************************************
-#* Utils ****************************************************
-
-ExprTypes = {
-  'file': FileExpr,
-
-  'fun': FunExpr,
-  'def': DefExpr,
-  'param': ParamExpr,
-  'var': VarExpr,
-
-  'set': SetExpr,
-  'call': CallExpr,
-  'return': ReturnExpr,
-
-  'int64': IntrinsicExpr,
-  'int32': IntrinsicExpr,
-
-  'debug': DebugExpr,
-}
 #26, number of lines for the GenericExpr
 #************************************************************
 #* GenericExpr***********************************************
@@ -579,6 +614,9 @@ ExprTypes = {
   'def': DefExpr,
   'param': ParamExpr,
   'var': VarExpr,
+
+  'ref': RefExpr,
+  'deref': DerefExpr,
 
   'set': SetExpr,
   'call': CallExpr,

@@ -8,13 +8,16 @@ class IVar(Var):
     self.value = value
   def __repr__(self):
     return f'ivar<{self.value}, {self.type}, {self.typeless}>'
+  
+  def pointer(self):
+    return IVar(self, '*' + self.type, False)
 
-  def set(self, newValue, expr, scope):
-    self.checkAndReplaceTypes(newValue, expr, scope)
+  def set(self, newValue, selfExpr, valExpr, scope):
+    self.checkAndReplaceTypes(newValue, selfExpr, valExpr, scope)
 
-    if isinstance(expr, VarExpr):
+    if isinstance(valExpr, VarExpr) or isinstance(valExpr, RefExpr):
       self.value = newValue.value
-    # elif isinstance(expr, ): # TODO: Other types? Pointers
+    # elif isinstance(valExpr, ): # TODO: Other types? Pointers
     else: self.value = newValue
 
 class IScope(Scope):

@@ -5,30 +5,32 @@ class Var:
   def __init__(self, _type = '', typeless = None):
     self.type = _type
     self.typeless = self.type == '' if typeless is None else typeless
-
   def __repr__(self):
     return f'var<{self.type}, {self.typeless}>'
 
-  def checkAndReplaceTypes(self, newValue, expr, scope):
+  def checkAndReplaceTypes(self, newValue, selfExpr, valExpr, scope):
     # TODO: Clean
     if isinstance(newValue, Var) and self.type != newValue.type:
       if not self.typeless:
-        error('[checkAndReplaceTypes] Wrong types:', self, expr, scope = scope)
+        error('[checkAndReplaceTypes] Wrong types:', self, valExpr, scope = scope)
       self.type = newValue.type
-    elif isinstance(expr, IntrinsicExpr) and self.type != expr.type:
+    elif isinstance(valExpr, IntrinsicExpr) and self.type != valExpr.type:
       if not self.typeless:
-        error('[checkAndReplaceTypes] Wrong types:', self, expr, scope = scope)
-      self.type = expr.type
-    elif isinstance(expr, CallExpr):
-      hack = Expr.construct(('fun', expr.name, '', ())) 
+        error('[checkAndReplaceTypes] Wrong types:', self, valExpr, scope = scope)
+      self.type = valExpr.type
+    elif isinstance(valExpr, CallExpr):
+      hack = Expr.construct(('fun', valExpr.name, '', ())) 
       fun = scope.findFun(hack) # TODO: Use signature
       if self.type != fun.type:
         if not self.typeless:
-          error('[checkAndReplaceTypes] Wrong types:', self, expr, scope = scope)
+          error('[checkAndReplaceTypes] Wrong types:', self, valExpr, scope = scope)
         self.type = fun.type
-    elif isinstance(expr, EmptyExpr): # TODO: URGENT
-      error('[checkAndReplaceTypes] EmptyExpr', self, expr, scope = scope)
-    # elif isinstance(expr, ): # TODO: Other types
+    elif isinstance(valExpr, EmptyExpr): # TODO: URGENT
+      error('[checkAndReplaceTypes] EmptyExpr', self, valExpr, scope = scope)
+    # elif isinstance(valExpr, ): # TODO: Other types
+
+  def isPointer(self):
+    return self.type.startswith('*')
 
 class Scope:
   def __init__(self, parent = None):
