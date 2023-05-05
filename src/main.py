@@ -1,10 +1,12 @@
 from compiler import Compile
 from interpreter import Execute
 from expr import Expr
-from utils import parseArgs
+from utils import parseArgs, setLogMask
 
 if __name__ == '__main__':
   args = parseArgs()
+
+  setLogMask(args.logMask.split(','))
 
   main = Expr.construct(('file', 'main.u', # TODO: Read file
     # int64 globA = 0
