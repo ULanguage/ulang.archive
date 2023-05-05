@@ -1,6 +1,6 @@
 from scope import Var, Scope
 from expr import *
-from utils import log
+from debug import log
 
 class CVar(Var):
   def __init__(self, reg, offset, _type = '', typeless = None):

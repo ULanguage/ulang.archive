@@ -1,16 +1,10 @@
 import sys
 import argparse
 
-logMask = [
-  'error',
-  'user',
-  'debug',
-  'deepDebug',
-]
-
 dfltO = 'main.asm'
 dfltComp = False
-dfltLogMask = 'user,error,debug'
+dfltLogMask = 'user,error'
+dfltDebugMask = ''
 
 def parseArgs():
   parser = argparse.ArgumentParser(
@@ -22,10 +16,6 @@ def parseArgs():
   )
 
   parser.add_argument(
-    '--logMask', default = dfltLogMask,
-    help = f'Comma separated list of masks for logging (default: "{dfltLogMask}")',
-  )
-  parser.add_argument(
     '--compile', default = dfltComp, action = 'store_true',
     help = f'Should compile the file (default: "{dfltComp}")',
   )
@@ -34,16 +24,13 @@ def parseArgs():
     help = f'Output path for the compiled file (default: "{dfltO}")',
   )
 
+  parser.add_argument(
+    '--logMask', default = dfltLogMask,
+    help = f'Comma separated list of masks for logging (default: "{dfltLogMask}")',
+  )
+  parser.add_argument(
+    '--debugMask', default = dfltDebugMask,
+    help = f'Comma separated list of masks for debug (default empty)',
+  )
+
   return parser.parse_args()
-
-def setLogMask(newLogMask):
-  global logMask
-  logMask = newLogMask
-
-def log(*args, level):
-  if level in logMask:
-    print(*args)
-
-def error(*args, scope = None, expr = None):
-  log('ERROR:', *args, scope, expr, level = 'error')
-  sys.exit(1)

@@ -1,6 +1,6 @@
 from scope import Var, Scope
 from expr import *
-from utils import log
+from debug import log
 
 class IVar(Var):
   def __init__(self, value = None, _type = '', typeless = None):

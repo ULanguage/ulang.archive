@@ -1,5 +1,5 @@
 from expr import *
-from utils import log, error
+from debug import log, error
 
 class Var:
   def __init__(self, _type = '', typeless = None):
