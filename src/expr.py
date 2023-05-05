@@ -35,7 +35,7 @@ class Expr:
       return EmptyExpr(expr)
 
     t = expr[0]
-    _class = Types.get(t, Expr)
+    _class = ExprTypes.get(t, Expr)
     return _class(expr)
 
 #************************************************************
@@ -274,8 +274,8 @@ class ParamExpr(Expr):
       value = self.value.exec(scope)
 
       # TODO: Repeated code with Set.exec and CallExpr.exec
-      # self.checkAndReplaceTypes(A, B, scope) # TODO ; URGENT
-
+      var.checkAndReplaceTypes(value, self.value, scope)
+      
       if isinstance(self.value, VarExpr):
         var.value = value.value
       # elif isinstance(self.value, ): # TODO: Other types? Pointers
@@ -296,7 +296,7 @@ class ParamExpr(Expr):
       value = self.value.comp(scope)
 
       # TODO: Repeated code with Set.comp
-      # self.checkAndReplaceTypes(A, B, scope) # TODO: URGENT
+      var.checkAndReplaceTypes(value, self.value, scope)
 
       reg = 'rax' # TODO: Alloc a register
       if isinstance(self.value, VarExpr):
@@ -364,7 +364,7 @@ class SetExpr(Expr):
     A = self.A.exec(scope)
     B = self.B.exec(scope)
 
-    self.checkAndReplaceTypes(A, B, scope)
+    A.checkAndReplaceTypes(B, self.B, scope)
 
     if isinstance(self.B, VarExpr):
       A.value = B.value
@@ -381,7 +381,7 @@ class SetExpr(Expr):
     A = self.A.comp(scope) 
     B = self.B.comp(scope)
 
-    self.checkAndReplaceTypes(A, B, scope)
+    A.checkAndReplaceTypes(B, self.B, scope)
 
     reg = 'rax' # TODO: Alloc a register
     if isinstance(self.B, VarExpr):
@@ -400,26 +400,6 @@ class SetExpr(Expr):
     
     self.text = text
     return self.text
-
-  def checkAndReplaceTypes(self, A, B, scope): # TODO: Rename
-    if not isinstance(self.A, VarExpr):
-      error('[SetExpr] A is not a var:', scope = scope, expr = self)
-
-    # TODO: Clean
-    if isinstance(self.B, VarExpr) and A.type != B.type:
-      if A.typeless: A.type = B.type
-      else: error('[SetExpr] Wrong types:', scope = scope, expr = self)
-    elif isinstance(self.B, IntrinsicExpr) and A.type != self.B.type:
-      if A.typeless: A.type = self.B.type
-      else: error('[SetExpr] Wrong types:', scope = scope, expr = self)
-    elif isinstance(self.B, CallExpr):
-      hack = Expr.construct(('fun', self.B.name, '', ())) 
-      fun = scope.findFun(hack) # TODO: Use signature
-      if A.type != fun.type:
-        if A.typeless: A.type = fun.type
-        else: error('[SetExpr] Wrong types:', scope = scope, expr = self)
-    # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
-    # elif isinstance(self.B, ): # TODO: Other types
 
 #************************************************************
 #* CallExpr *************************************************
@@ -465,7 +445,7 @@ class CallExpr(Expr):
       value = arg.exec(scope)
 
       # TODO: Repeated code with Set.exec
-      # self.checkAndReplaceTypes(A, B, scope) # TODO ; URGENT
+      var.checkAndReplaceTypes(value, arg, scope)
 
       if isinstance(arg, VarExpr):
         var.value = value.value
@@ -502,7 +482,7 @@ class CallExpr(Expr):
       value = arg.comp(scope)
 
       # TODO: Repeated code with Set.comp
-      # self.checkAndReplaceTypes(A, B, scope) # TODO: URGENT
+      var.checkAndReplaceTypes(value, arg, scope) # TODO: URGENT
 
       reg = 'rax' # TODO: Alloc a register
       if isinstance(arg, VarExpr):
@@ -618,7 +598,7 @@ class GenericExpr(Expr):
 #************************************************************
 #* Utils ****************************************************
 
-Types = {
+ExprTypes = {
   'file': FileExpr,
 
   'fun': FunExpr,

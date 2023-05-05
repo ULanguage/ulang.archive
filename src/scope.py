@@ -1,3 +1,6 @@
+from expr import *
+from utils import log, error
+
 class Var:
   def __init__(self, _type = '', typeless = None):
     self.type = _type
@@ -5,6 +8,23 @@ class Var:
 
   def __repr__(self):
     return f'var<{self.type}, {self.typeless}>'
+
+  def checkAndReplaceTypes(self, B, Bexpr, scope): # TODO: Rename
+    # TODO: Clean
+    if isinstance(Bexpr, VarExpr) and self.type != B.type:
+      if self.typeless: self.type = B.type
+      else: error('[checkAndReplaceTypes] Wrong types:', self, Bexpr, scope = scope)
+    elif isinstance(Bexpr, IntrinsicExpr) and self.type != Bexpr.type:
+      if self.typeless: self.type = Bexpr.type
+      else: error('[checkAndReplaceTypes] Wrong types:', self, Bexpr, scope = scope)
+    elif isinstance(Bexpr, CallExpr):
+      hack = Expr.construct(('fun', Bexpr.name, '', ())) 
+      fun = scope.findFun(hack) # TODO: Use signature
+      if self.type != fun.type:
+        if self.typeless: self.type = fun.type
+        else: error('[checkAndReplaceTypes] Wrong types:', self, Bexpr, scope = scope)
+    # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
+    # elif isinstance(Bexpr, ): # TODO: Other types
 
 class Scope:
   def __init__(self, parent = None):
