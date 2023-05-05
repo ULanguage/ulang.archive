@@ -50,7 +50,7 @@ if __name__ == '__main__':
       ('def', 'foo', 'int64', ('int64', 4)),
 
       # int64 bar = 1
-      ('def', 'bar', 'int64', ('int64', 1)),
+      ('def', 'bar', 'int64', ('int64', 0)),
       ('if', ('var', 'bar'), (
         ('return', ('/', ('var', 'ing'), ('var', 'foo'))),
       ), (

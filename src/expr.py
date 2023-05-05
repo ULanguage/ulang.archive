@@ -576,6 +576,36 @@ class IfExpr(Expr):
     log(self, level = 'deepDebug')
     text = self.compComment()
     
+    child = scope.child()
+
+    res = self.cond.comp(child) # TODO: Repeated code with ReturnExpr
+    if isinstance(self.cond, VarExpr):
+      text += f'  mov rax, [{res.reference}]\n'
+    # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
+    # elif isinstance(self.cond, ): # TODO: Other types
+    elif isinstance(self.cond, ArithmExpr):
+      text += res[0]
+      text += f'  mov rax, {res[1]}\n'
+    else:
+      text += f'  mov rax, {res}\n'
+
+    falseLabel = '.__else' # TODO: Alloc
+    endLabel = '.__endif' # TODO: Alloc
+
+    text += f'  cmp rax, 0\n' 
+    text += f'  je {falseLabel}\n'
+
+    for expr in self.truePath:
+      text += expr.comp(child)
+
+    text += f'  jmp {endLabel}\n'
+    text += f'{falseLabel}:\n'
+
+    for expr in self.falsePath:
+      text += expr.comp(child)
+
+    text += f'{endLabel}:\n'
+
     self.text = text
     return self.text
 
