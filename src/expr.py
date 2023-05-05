@@ -520,6 +520,9 @@ class ReturnExpr(Expr):
       text += f'  mov rax, [{res.reference}]\n'
     # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
     # elif isinstance(self.expr, ): # TODO: Other types
+    elif isinstance(self.expr, ArithmExpr):
+      text += res[0]
+      text += f'  mov rax, {res[1]}\n'
     else:
       text += f'  mov rax, {res}\n'
 
@@ -527,6 +530,66 @@ class ReturnExpr(Expr):
 
     self.text = text
     return self.text
+
+#************************************************************
+#* ArithmExpr ***********************************************
+# (+, Expr x, Expr y)
+# Returns x + y
+
+class ArithmExpr(Expr):
+  def __init__(self, expr):
+    super().__init__(expr)
+    self.x = Expr.construct(expr[1])
+    self.y = Expr.construct(expr[2])
+  def __repr__(self):
+    return f'(+, {self.x}, {self.y})'
+
+  def exec(self, scope):
+    log(self, level = 'deepDebug')
+
+    x = self.fooExec(self.x, scope)
+    y = self.fooExec(self.y, scope)
+
+    # TODO: Check they have the same type
+
+    return x + y # TODO: Return with type
+
+  def comp(self, scope):
+    log(self, level = 'deepDebug')
+    text = self.compComment()
+    
+    x = self.fooComp(self.x, scope)
+    y = self.fooComp(self.y, scope)
+
+    # TODO: Check they have the same type
+
+    reg = 'rax' # TODO: Alloc register
+    text += f'  mov {reg}, {x}\n'
+    text += f'  add {reg}, {y}\n'
+
+    # TODO: Free register?
+    self.text = text
+    return self.text, reg
+
+  def fooExec(self, expr, scope):
+    x = expr.exec(scope)
+    if isinstance(expr, VarExpr) or isinstance(expr, DerefExpr):
+      return x.value
+    elif isinstance(expr, IntrinsicExpr):
+      return x
+    # elif isinstance(expr, ): # TODO: Other types
+    else:
+      error('[ArithmExpr] Type not supported', x, expr, scope = scope, expr = self)
+
+  def fooComp(self, expr, scope):
+    x = expr.comp(scope)
+    if isinstance(expr, VarExpr) or isinstance(expr, DerefExpr):
+      return f'[{x.reference}]'
+    elif isinstance(expr, IntrinsicExpr):
+      return x
+    # elif isinstance(expr, ): # TODO: Other types
+    else:
+      error('[ArithmExpr] Type not supported', x, expr, scope = scope, expr = self)
 
 #************************************************************
 #* IntrinsicExpr ********************************************
@@ -621,6 +684,8 @@ ExprTypes = {
   'set': SetExpr,
   'call': CallExpr,
   'return': ReturnExpr,
+
+  '+': ArithmExpr,
 
   'int64': IntrinsicExpr,
   'int32': IntrinsicExpr,

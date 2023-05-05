@@ -24,31 +24,30 @@ if __name__ == '__main__':
       ('return', ('var', 'globA')),
     ), # }
 
-    # fun setGlob(int64 newValue = getGlob())) {
-    ('fun', 'setGlob', 'int64', (('param', 'var', '*int64', ()), ('param', 'newValue', 'int64', ())),
-      # ('debug', 'debug', (), (('var', 'var'), ('deref', ('var', 'var')), ('var', 'newValue'))),
-      ('set', ('deref', ('var', 'var')), ('var', 'newValue')),
-      # ('debug', 'debug', (), (('var', 'var'), ('deref', ('var', 'var')), ('var', 'newValue'))),
-      # globA = newValue
-      # ('set', ('var', 'globA'), ('var', 'newValue')),
+    # fun setGlob(*int64 var) {
+    ('fun', 'setGlob', 'int64', (('param', 'var', '*int64', ()),),
+      # globA = *var
+      ('set', ('var', 'globA'), ('deref', ('var', 'var'))),
     ), # }
 
     # fun main() int64 {
     ('fun', 'main', 'int64', (),
       # var ing = 2
       ('def', 'ing', '', ('int64', 2)),
+      # int64 foo = 1
+      ('def', 'foo', 'int64', ('int64', 4)),
 
       # ing = 3
       ('set', ('var', 'ing'), ('int64', 3)),
 
-      # setGlob()
-      ('call', 'setGlob', ('ref', ('var', 'ing')), ('int64', 5)),
+      # setGlob(&ing)
+      ('call', 'setGlob', ('ref', ('var', 'ing'))),
 
       # ing = getGlob()
       # ('set', ('var', 'ing'), ('call', 'getGlob')),
 
-      # return ing
-      ('return', ('var', 'ing')),
+      # return ing + var
+      ('return', ('+', ('var', 'ing'), ('deref', ('ref', ('var', 'foo'))))),
     ), # }
   ))
 
