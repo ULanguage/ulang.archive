@@ -390,11 +390,6 @@ class CallExpr(Expr):
     # TODO: Named args
     for idx, arg in enumerate(self.args):
       param = fun.params[idx]
-      # TODO: Exec a set ; URGENT
-  
-      # NOTE: The following is just a hack
-      # hack = Expr.construct(('param', param.name, param.type, arg))
-      # text += hack.exec(sibling)
 
       var = param.define(sibling)
       value = arg.exec(scope)
@@ -421,19 +416,17 @@ class CallExpr(Expr):
     if len(self.args) > len(fun.params):
       error('[CallExpr.comp] Too many args:', scope = scope, expr = self)
 
-    # TODO: Named args
-    for idx, arg in enumerate(reversed(self.args)): # NOTE: Params are passed on the stack, thus they're reversed # TDOO: But I'm not doing it right!! URGENT
-      param = fun.params[idx] # TODO: Reversed and enumerate cause wrong idx!! URGENT
-      # TODO: Exec a set ; URGENT
+    for _idx, param in enumerate(reversed(fun.params)): # NOTE: Params are passed on the stack, thus they're reversed
+      idx = len(fun.params) - 1 - _idx # Also in reverse
+      if idx < len(self.args): # This param is provided
+        arg = self.args[idx]
 
-      var = param.define(sibling)
-      value = arg.comp(scope)
+        var = param.define(sibling)
+        value = arg.comp(scope)
 
-      text += var.set(value, arg, scope, asArg = True)
-
-    # Make sure all params are defined
-    for param in reversed(fun.params): # NOTE: Params are passed on the stack, thus they're reversed
-      text += param.comp(sibling)
+        text += var.set(value, arg, scope, asArg = True)
+      else:
+        text += param.comp(sibling)
 
     text += f'  call {fun.name}\n'
     
@@ -467,7 +460,7 @@ class ReturnExpr(Expr):
   def comp(self, scope):
     text = self.compComment()
 
-    res = self.expr.comp(scope) # TODO: Shouldn't this be comp? # URGENT
+    res = self.expr.comp(scope)
     if isinstance(self.expr, VarExpr):
       text += f'  mov rax, {res.reference()}\n'
     # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
