@@ -1,5 +1,5 @@
 from scope import Var, Scope
-from expr import DefExpr, ParamExpr
+from expr import *
 from utils import log
 
 class CVar(Var):
@@ -13,6 +13,30 @@ class CVar(Var):
     reg, offset = self.reg, self.offset # Rename
     if reg == 'global': return f'[{offset}]'
     else: return f'[{reg} + {offset}]'
+
+  def set(self, B, Bexpr, scope, asArg = False):
+    text = ''
+    reg = 'rax' # TODO: Alloc a register
+    if isinstance(Bexpr, VarExpr):
+      text += f'  mov {reg}, {B.reference()}\n'
+    elif isinstance(Bexpr, CallExpr):
+      text += B
+      reg = 'rax' # TODO: Multiple returns
+    elif isinstance(Bexpr, IntrinsicExpr): # TODO: Depends on the type
+      reg = B
+    # elif isinstance(Bexpr, EmptyExpr): # TODO: URGENT
+    # elif isinstance(Bexpr, ): # TODO: Other types
+    else:
+      text += f'  mov {reg}, {B}\n'
+
+    if asArg:
+      text += f'  push {reg}\n'
+    else:
+      text += f'  mov qword {self.reference()}, {reg}\n' # TODO: qword depends on type
+
+    # TODO: Free reg?
+
+    return text
 
 class CScope(Scope):
   def __init__(self, parent = None):

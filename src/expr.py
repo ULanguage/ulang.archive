@@ -272,14 +272,7 @@ class ParamExpr(Expr):
     if var is None:
       var = self.define(scope)
       value = self.value.exec(scope)
-
-      # TODO: Repeated code with Set.exec and CallExpr.exec
-      var.checkAndReplaceTypes(value, self.value, scope)
-      
-      if isinstance(self.value, VarExpr):
-        var.value = value.value
-      # elif isinstance(self.value, ): # TODO: Other types? Pointers
-      else: var.value = value
+      var.set(value, self.value, scope)
 
     if var.value is None:
       error('[ParamExpr.exec]', scope = scope, expr = self)
@@ -294,24 +287,7 @@ class ParamExpr(Expr):
     if var is None:
       var = self.define(scope)
       value = self.value.comp(scope)
-
-      # TODO: Repeated code with Set.comp
-      var.checkAndReplaceTypes(value, self.value, scope)
-
-      reg = 'rax' # TODO: Alloc a register
-      if isinstance(self.value, VarExpr):
-        text += f'  mov {reg}, {value.reference()}\n'
-      elif isinstance(self.value, CallExpr):
-        text += value
-        reg = 'rax' # TODO: Multiple returns
-      elif isinstance(self.value, IntrinsicExpr): # TODO: Depends on the type
-        reg = value
-      # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
-      # elif isinstance(self.value, ): # TODO: Other types
-      else:
-        text += f'  mov {reg}, {value}\n'
-
-      text += f'  push {reg}\n'
+      text += var.set(value, self.value, scope, asArg = True)
     
     self.text = text
     return self.text
@@ -363,13 +339,7 @@ class SetExpr(Expr):
 
     A = self.A.exec(scope)
     B = self.B.exec(scope)
-
-    A.checkAndReplaceTypes(B, self.B, scope)
-
-    if isinstance(self.B, VarExpr):
-      A.value = B.value
-    # elif isinstance(self.expr, ): # TODO: Other types? Pointers
-    else: A.value = B
+    A.set(B, self.B, scope)
 
     return A
 
@@ -381,22 +351,7 @@ class SetExpr(Expr):
     A = self.A.comp(scope) 
     B = self.B.comp(scope)
 
-    A.checkAndReplaceTypes(B, self.B, scope)
-
-    reg = 'rax' # TODO: Alloc a register
-    if isinstance(self.B, VarExpr):
-      text += f'  mov {reg}, {B.reference()}\n'
-    elif isinstance(self.B, CallExpr):
-      text += B
-      reg = 'rax' # TODO: Multiple returns
-    elif isinstance(self.B, IntrinsicExpr): # TODO: Depends on the type
-      reg = B
-    # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
-    # elif isinstance(self.B, ): # TODO: Other types
-    else:
-      text += f'  mov {reg}, {B}\n'
-
-    text += f'  mov qword {A.reference()}, {reg}\n' # TODO: qword depends on type
+    text += A.set(B, self.B, scope)
     
     self.text = text
     return self.text
@@ -443,14 +398,7 @@ class CallExpr(Expr):
 
       var = param.define(sibling)
       value = arg.exec(scope)
-
-      # TODO: Repeated code with Set.exec
-      var.checkAndReplaceTypes(value, arg, scope)
-
-      if isinstance(arg, VarExpr):
-        var.value = value.value
-      # elif isinstance(arg, ): # TODO: Other types? Pointers
-      else: var.value = value
+      var.set(value, arg, scope)
 
     # Make sure all params are defined
     for param in fun.params:
@@ -474,30 +422,14 @@ class CallExpr(Expr):
       error('[CallExpr.comp] Too many args:', scope = scope, expr = self)
 
     # TODO: Named args
-    for idx, arg in enumerate(reversed(self.args)): # NOTE: Params are passed on the stack, thus they're reversed
+    for idx, arg in enumerate(reversed(self.args)): # NOTE: Params are passed on the stack, thus they're reversed # TDOO: But I'm not doing it right!! URGENT
       param = fun.params[idx] # TODO: Reversed and enumerate cause wrong idx!! URGENT
       # TODO: Exec a set ; URGENT
 
       var = param.define(sibling)
       value = arg.comp(scope)
 
-      # TODO: Repeated code with Set.comp
-      var.checkAndReplaceTypes(value, arg, scope) # TODO: URGENT
-
-      reg = 'rax' # TODO: Alloc a register
-      if isinstance(arg, VarExpr):
-        text += f'  mov {reg}, {value.reference()}\n'
-      elif isinstance(arg, CallExpr):
-        text += value
-        reg = 'rax' # TODO: Multiple returns
-      elif isinstance(arg, IntrinsicExpr): # TODO: Depends on the type
-        reg = value
-      # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
-      # elif isinstance(arg, ): # TODO: Other types
-      else:
-        text += f'  mov {reg}, {value}\n'
-
-      text += f'  push {reg}\n'
+      text += var.set(value, arg, scope, asArg = True)
 
     # Make sure all params are defined
     for param in reversed(fun.params): # NOTE: Params are passed on the stack, thus they're reversed

@@ -17,7 +17,7 @@ if __name__ == '__main__':
     ), # }
 
     # fun setGlob(int64 newValue = getGlob())) {
-      ('fun', 'setGlob', 'int64', (('param', 'newValue', 'int64', ('call', 'getGlob')),),
+      ('fun', 'setGlob', 'int64', (('param', 'newValue', 'int64', ('int64', 4)),),
       # globA = newValue
       ('set', ('var', 'globA'), ('var', 'newValue')),
     ), # }

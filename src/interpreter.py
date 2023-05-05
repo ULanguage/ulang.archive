@@ -1,4 +1,5 @@
 from scope import Var, Scope
+from expr import *
 from utils import log
 
 class IVar(Var):
@@ -7,6 +8,14 @@ class IVar(Var):
     self.value = value
   def __repr__(self):
     return f'ivar<{self.value}, {self.type}, {self.typeless}>'
+
+  def set(self, B, Bexpr, scope):
+    self.checkAndReplaceTypes(B, Bexpr, scope)
+
+    if isinstance(Bexpr, VarExpr):
+      self.value = B.value
+    # elif isinstance(Bexpr, ): # TODO: Other types? Pointers
+    else: self.value = B
 
 class IScope(Scope):
   def __init__(self, parent = None):
