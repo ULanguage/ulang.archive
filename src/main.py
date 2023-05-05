@@ -49,16 +49,23 @@ if __name__ == '__main__':
       # int64 foo = 4
       ('def', 'foo', 'int64', ('int64', 4)),
 
-      # int64 bar = 1
-      ('def', 'bar', 'int64', ('int64', 0)),
-      ('if', ('var', 'bar'), (
-        ('return', ('/', ('var', 'ing'), ('var', 'foo'))),
+      # int64 bar0 = 1
+      ('def', 'bar0', 'int64', ('int64', 0)),
+      # int64 bar1 = 1
+      ('def', 'bar1', 'int64', ('int64', 0)),
+
+      ('if', ('var', 'bar0'), (
+        ('if', ('var', 'bar1'), (
+          ('return', ('/', ('var', 'ing'), ('var', 'foo'))),
+        ), (
+          ('return', ('%', ('var', 'ing'), ('var', 'foo'))),
+        )),
       ), (
-        ('return', ('%', ('var', 'ing'), ('var', 'foo'))),
+        ('return', ('*', ('var', 'ing'), ('var', 'foo'))),
       )),
 
       # return ing + var
-      ('return', ('*', ('var', 'ing'), ('var', 'foo'))),
+      ('return', ('+', ('var', 'ing'), ('var', 'foo'))),
     ), # }
   ))
 

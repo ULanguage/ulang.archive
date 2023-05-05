@@ -43,6 +43,8 @@ class Scope:
     self.returned = False
     self.broke = False
 
+    self.labels = dict()
+
   def __repr__(self):
     return f'Scope<{not self.parent is None}, {list(self.funs.keys())}, {list(self.vars.keys())}>'
 
@@ -83,3 +85,11 @@ class Scope:
     if not 'main' in self.funs: # NOTE: Only match based on name
       error('[findMainFun]', scope = self)
     return self.funs['main']
+
+  def getLabel(self, label):
+    if self.parent is not None and self.parent.parent is not None: # Go upstreams until the function scope # TODO: Simplify
+      return self.parent.getLabel(label)
+
+    count = self.labels.get(label, 0)
+    self.labels[label] = count + 1
+    return f'{label}_{count}'

@@ -589,11 +589,14 @@ class IfExpr(Expr):
     else:
       text += f'  mov rax, {res}\n'
 
-    falseLabel = '.__else' # TODO: Alloc
-    endLabel = '.__endif' # TODO: Alloc
+    trueLabel = child.getLabel('.__true')
+    falseLabel = child.getLabel('.__else')
+    endLabel = child.getLabel('.__end')
 
     text += f'  cmp rax, 0\n' 
     text += f'  je {falseLabel}\n'
+
+    text += f'{trueLabel}:\n'
 
     for expr in self.truePath:
       text += expr.comp(child)
