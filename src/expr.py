@@ -1,5 +1,5 @@
 from copy import deepcopy
-from debug import log, error
+from debug import log, error, debugStep
 
 #************************************************************
 #* Expr *****************************************************
@@ -500,6 +500,55 @@ class IntrinsicExpr(Expr):
   def comp(self, scope):
     return self.value # TODO: Depends on the actual type
 
+#************************************************************
+#* DebugExpr ************************************************
+# (debug, string level, (python args...), (Expr exprs...))
+# Used to debug the interpreter / compiler
+
+class DebugExpr(Expr):
+  def __init__(self, expr):
+    super().__init__(expr)
+    self.level = expr[1]
+    self.args = expr[2]
+    self.exprs = [Expr.construct(subexpr) for subexpr in expr[3]]
+  def __repr__(self):
+    args = ', '.join([str(arg) for arg in self.args])
+    if args != '':
+      args = ', ' + args
+    return f'(debug, {tuple(self.exprs)}{args})'
+
+  def define(self, scope):
+    self.debug(scope)
+  def exec(self, scope):
+    self.debug(scope)
+  def comp(self, scope):
+    self.debug(scope)
+    return ''
+
+  def debug(self, scope):
+    results = [expr.exec(scope) for expr in self.exprs]
+    debugStep(*self.args, *results, level = self.level)
+
+#************************************************************
+#* Utils ****************************************************
+
+ExprTypes = {
+  'file': FileExpr,
+
+  'fun': FunExpr,
+  'def': DefExpr,
+  'param': ParamExpr,
+  'var': VarExpr,
+
+  'set': SetExpr,
+  'call': CallExpr,
+  'return': ReturnExpr,
+
+  'int64': IntrinsicExpr,
+  'int32': IntrinsicExpr,
+
+  'debug': DebugExpr,
+}
 #26, number of lines for the GenericExpr
 #************************************************************
 #* GenericExpr***********************************************
@@ -544,4 +593,6 @@ ExprTypes = {
 
   'int64': IntrinsicExpr,
   'int32': IntrinsicExpr,
+
+  'debug': DebugExpr,
 }

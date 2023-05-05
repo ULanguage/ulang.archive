@@ -38,6 +38,7 @@ def Taskcomp():
   oPath = ASMSRC[:-3] + "o"
 
   return {
+    'deps': PYSRC + USRC,
     'outs': [BUILDD, ASMSRC, oPath, BIN],
     'capture': 1,
 
