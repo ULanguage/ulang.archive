@@ -534,15 +534,20 @@ class ReturnExpr(Expr):
 #************************************************************
 #* ArithmExpr ***********************************************
 # (+, Expr x, Expr y)
-# Returns x + y
+# (-, Expr x, Expr y)
+# (*, Expr x, Expr y)
+# (/, Expr x, Expr y)
+# (%, Expr x, Expr y)
+# TODO: Negation
 
 class ArithmExpr(Expr):
   def __init__(self, expr):
     super().__init__(expr)
+    self.action = expr[0]
     self.x = Expr.construct(expr[1])
     self.y = Expr.construct(expr[2])
   def __repr__(self):
-    return f'(+, {self.x}, {self.y})'
+    return f'({self.action}, {self.x}, {self.y})'
 
   def exec(self, scope):
     log(self, level = 'deepDebug')
@@ -552,7 +557,7 @@ class ArithmExpr(Expr):
 
     # TODO: Check they have the same type
 
-    return x + y # TODO: Return with type
+    return self.execAction(x, y, scope)
 
   def comp(self, scope):
     log(self, level = 'deepDebug')
@@ -562,14 +567,46 @@ class ArithmExpr(Expr):
     y = self.fooComp(self.y, scope)
 
     # TODO: Check they have the same type
-
     reg = 'rax' # TODO: Alloc register
-    text += f'  mov {reg}, {x}\n'
-    text += f'  add {reg}, {y}\n'
+    text += self.compAction(x, y, reg, scope)
 
     # TODO: Free register?
     self.text = text
     return self.text, reg
+
+  def execAction(self, x, y, scope):
+    # TODO: Return with type
+    match self.action:
+      case '+': return x + y
+      case '-': return x - y
+      case '*': return x * y
+      case '/': return x // y
+      case '%': return x % y
+
+  def compAction(self, x, y, reg, scope):
+    text = ''
+
+    match self.action:
+      case '+':
+        text += f'  mov {reg}, {x}\n'
+        text += f'  add {reg}, {y}\n'
+      case '-':
+        text += f'  mov {reg}, {x}\n'
+        text += f'  sub {reg}, {y}\n'
+      case '*':
+        text += f'  mov {reg}, {x}\n'
+        text += f'  imul {reg}, {y}\n' # TODO: unsigned
+        text += f'  mov {reg}, rax\n' # TODO: High part
+      case '/':
+        text += f'  mov {reg}, {x}\n'
+        text += f'  idiv qword {y}\n' # TODO: unsigned
+        text += f'  mov {reg}, rax\n'
+      case '%':
+        text += f'  mov {reg}, {x}\n'
+        text += f'  idiv qword {y}\n' # TODO: unsigned
+        text += f'  mov {reg}, rdx\n'
+
+    return text
 
   def fooExec(self, expr, scope):
     x = expr.exec(scope)
@@ -686,6 +723,10 @@ ExprTypes = {
   'return': ReturnExpr,
 
   '+': ArithmExpr,
+  '-': ArithmExpr,
+  '*': ArithmExpr,
+  '/': ArithmExpr,
+  '%': ArithmExpr,
 
   'int64': IntrinsicExpr,
   'int32': IntrinsicExpr,
