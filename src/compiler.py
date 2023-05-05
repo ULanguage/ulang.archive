@@ -14,20 +14,22 @@ class CVar(Var):
     if reg == 'global': return f'[{offset}]'
     else: return f'[{reg} + {offset}]'
 
-  def set(self, B, Bexpr, scope, asArg = False):
+  def set(self, newValue, expr, scope, asArg = False):
+    self.checkAndReplaceTypes(newValue, expr, scope)
+
     text = ''
     reg = 'rax' # TODO: Alloc a register
-    if isinstance(Bexpr, VarExpr):
-      text += f'  mov {reg}, {B.reference()}\n'
-    elif isinstance(Bexpr, CallExpr):
-      text += B
+    if isinstance(expr, VarExpr):
+      text += f'  mov {reg}, {newValue.reference()}\n'
+    elif isinstance(expr, CallExpr):
+      text += newValue
       reg = 'rax' # TODO: Multiple returns
-    elif isinstance(Bexpr, IntrinsicExpr): # TODO: Depends on the type
-      reg = B
-    # elif isinstance(Bexpr, EmptyExpr): # TODO: URGENT
-    # elif isinstance(Bexpr, ): # TODO: Other types
+    elif isinstance(expr, IntrinsicExpr): # TODO: Depends on the type
+      reg = newValue
+    # elif isinstance(expr, EmptyExpr): # TODO: URGENT
+    # elif isinstance(expr, ): # TODO: Other types
     else:
-      text += f'  mov {reg}, {B}\n'
+      text += f'  mov {reg}, {newValue}\n'
 
     if asArg:
       text += f'  push {reg}\n'

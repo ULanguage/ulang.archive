@@ -9,22 +9,26 @@ class Var:
   def __repr__(self):
     return f'var<{self.type}, {self.typeless}>'
 
-  def checkAndReplaceTypes(self, B, Bexpr, scope): # TODO: Rename
+  def checkAndReplaceTypes(self, newValue, expr, scope):
     # TODO: Clean
-    if isinstance(Bexpr, VarExpr) and self.type != B.type:
-      if self.typeless: self.type = B.type
-      else: error('[checkAndReplaceTypes] Wrong types:', self, Bexpr, scope = scope)
-    elif isinstance(Bexpr, IntrinsicExpr) and self.type != Bexpr.type:
-      if self.typeless: self.type = Bexpr.type
-      else: error('[checkAndReplaceTypes] Wrong types:', self, Bexpr, scope = scope)
-    elif isinstance(Bexpr, CallExpr):
-      hack = Expr.construct(('fun', Bexpr.name, '', ())) 
+    if isinstance(newValue, Var) and self.type != newValue.type:
+      if not self.typeless:
+        error('[checkAndReplaceTypes] Wrong types:', self, expr, scope = scope)
+      self.type = newValue.type
+    elif isinstance(expr, IntrinsicExpr) and self.type != expr.type:
+      if not self.typeless:
+        error('[checkAndReplaceTypes] Wrong types:', self, expr, scope = scope)
+      self.type = expr.type
+    elif isinstance(expr, CallExpr):
+      hack = Expr.construct(('fun', expr.name, '', ())) 
       fun = scope.findFun(hack) # TODO: Use signature
       if self.type != fun.type:
-        if self.typeless: self.type = fun.type
-        else: error('[checkAndReplaceTypes] Wrong types:', self, Bexpr, scope = scope)
-    # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
-    # elif isinstance(Bexpr, ): # TODO: Other types
+        if not self.typeless:
+          error('[checkAndReplaceTypes] Wrong types:', self, expr, scope = scope)
+        self.type = fun.type
+    elif isinstance(expr, EmptyExpr): # TODO: URGENT
+      error('[checkAndReplaceTypes] EmptyExpr', self, expr, scope = scope)
+    # elif isinstance(expr, ): # TODO: Other types
 
 class Scope:
   def __init__(self, parent = None):

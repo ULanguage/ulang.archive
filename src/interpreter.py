@@ -9,13 +9,13 @@ class IVar(Var):
   def __repr__(self):
     return f'ivar<{self.value}, {self.type}, {self.typeless}>'
 
-  def set(self, B, Bexpr, scope):
-    self.checkAndReplaceTypes(B, Bexpr, scope)
+  def set(self, newValue, expr, scope):
+    self.checkAndReplaceTypes(newValue, expr, scope)
 
-    if isinstance(Bexpr, VarExpr):
-      self.value = B.value
-    # elif isinstance(Bexpr, ): # TODO: Other types? Pointers
-    else: self.value = B
+    if isinstance(expr, VarExpr):
+      self.value = newValue.value
+    # elif isinstance(expr, ): # TODO: Other types? Pointers
+    else: self.value = newValue
 
 class IScope(Scope):
   def __init__(self, parent = None):
