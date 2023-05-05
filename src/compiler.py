@@ -21,7 +21,7 @@ class CVar(Var):
     if isinstance(newExpr, VarExpr) or isinstance(newExpr, DerefExpr):
       text += f'  mov {reg}, [{newValue.reference}]\n'
     elif isinstance(newExpr, RefExpr):
-      text += f'  mov {reg}, {newValue.reference}\n'
+      text += f'  lea {reg}, [{newValue.reference}]\n'
     elif isinstance(newExpr, CallExpr):
       text += newValue
       reg = 'rax' # TODO: Multiple returns
@@ -52,11 +52,12 @@ class CScope(Scope):
   def newVar(self, _def):
     place = 'def' if isinstance(_def, DefExpr) else 'param'
 
-    # TODO: Clean
-    offset = (len(self.varsWithPlace(place)) + 2 * int(place == 'param')) * 8 # TODO: 8 depends on each var's size
-    if place == 'def': # Below rbp
-      offset = -offset
-    reference = f'rbp + {offset}'
+    reference = ''
+    offset = len(self.varsWithPlace(place)) * 8 # TODO: 8 depends on each var's size
+    if place == 'def':
+      reference = f'rbp - {offset + 8}' # Below rbp
+    elif place == 'param':
+      reference = f'rbp + {offset + 16}' # Above rbp and rip
 
     if self.parent is None and isinstance(_def, DefExpr):
       place = 'global'
