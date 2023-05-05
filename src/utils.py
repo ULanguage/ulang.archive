@@ -3,7 +3,8 @@ import sys
 logMask = [
   'error',
   'user',
-  'debug'
+  'debug',
+  # 'deepDebug',
 ]
 
 def log(*args, level):

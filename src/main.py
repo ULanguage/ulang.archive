@@ -21,6 +21,7 @@ if __name__ == '__main__':
       # globA = newValue
       ('set', ('var', 'globA'), ('var', 'newValue')),
     ), # }
+
     # fun main() int64 {
     ('fun', 'main', 'int64', (),
       # var ing = 2
