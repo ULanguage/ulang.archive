@@ -61,7 +61,7 @@ class CScope(Scope):
 
     if self.parent is None and isinstance(_def, DefExpr):
       place = 'global'
-      reference = _def.name
+      reference = f'rel {_def.name}'
 
     return CVar(place, reference, _def.type)
 
@@ -73,7 +73,7 @@ def Compile(fileExpr, to = 'main.asm'):
 
   scope = CScope()
 
-  top = 'global _start\n'
+  top = 'global main\n'
   data = 'section .data\n'
   text = 'section .text\n'
 

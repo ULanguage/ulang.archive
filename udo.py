@@ -46,7 +46,7 @@ def Taskcomp():
       f'mkdir -p {BUILDD}',
       f'python {SRCD}/main.py --compile -o {ASMSRC}',
       f'nasm -felf64 {ASMSRC}',
-      f'ld {oPath} -o {BIN}',
+      f'gcc -o {BIN} {oPath}',
     ],
   }
 

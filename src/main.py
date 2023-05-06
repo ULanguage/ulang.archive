@@ -32,6 +32,7 @@ if __name__ == '__main__':
 
     # fun main() int64 {
     ('fun', 'main', 'int64', (),
+      ('return', ('ref', ('var', 'globA'))),
       # var ing = 2
       ('def', 'ing', '', ('int64', 2)),
 

@@ -154,7 +154,7 @@ class FunExpr(Expr):
   def getText(self, scope, s, isMain):
     # TODO: Simplify
     text = self.compComment()
-    text += '_start:\n' if isMain else ''
+    # text += '_start:\n' if isMain else ''
     text += f'{self.name}:\n'
 
     text += self.textBuildSF(scope)
@@ -523,6 +523,8 @@ class ReturnExpr(Expr):
     res = self.expr.comp(scope)
     if isinstance(self.expr, VarExpr):
       text += f'  mov rax, [{res.reference}]\n'
+    elif isinstance(self.expr, RefExpr):
+      text += f'  lea rax, [{res.reference}]\n'
     # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
     # elif isinstance(self.expr, ): # TODO: Other types
     elif isinstance(self.expr, ArithmExpr):
