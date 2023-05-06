@@ -3,17 +3,17 @@ from expr import *
 from debug import log
 
 class IVar(Var):
-  def __init__(self, value = None, _type = '', typeless = None):
-    super().__init__(_type, typeless)
+  def __init__(self, value, _type):
+    super().__init__(_type)
     self.value = value
   def __repr__(self):
-    return f'ivar<{self.value}, {self.type}, {self.typeless}>'
+    return f'ivar<{self.value}, {self.type}>'
   
   def pointer(self):
-    return IVar(self, '*' + self.type, False)
+    return IVar(self, '*' + self.type)
 
   def set(self, newValue, selfExpr, valExpr, scope):
-    self.checkAndReplaceTypes(newValue, selfExpr, valExpr, scope)
+    self.checkTypes(newValue, selfExpr, valExpr, scope)
 
     if isinstance(valExpr, VarExpr) or isinstance(valExpr, RefExpr):
       self.value = newValue.value
@@ -25,7 +25,7 @@ class IScope(Scope):
     super().__init__(parent)
 
   def newVar(self, _def):
-    return IVar(_type = _def.type)
+    return IVar(None, _def.type)
 
 def Execute(fileExpr):
   log('[Execute]', fileExpr, level = 'debug')

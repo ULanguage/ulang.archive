@@ -3,18 +3,18 @@ from expr import *
 from debug import log
 
 class CVar(Var):
-  def __init__(self, place, reference, _type = '', typeless = None):
-    super().__init__(_type, typeless)
+  def __init__(self, place, reference, _type):
+    super().__init__(_type)
     self.place = place
     self.reference = reference
   def __repr__(self):
-    return f'cvar<{self.place}, {self.reference}, {self.type}, {self.typeless}>'
+    return f'cvar<{self.place}, {self.reference}, {self.type}>'
 
   def pointer(self):
-    return CVar(self.place, self.reference, '*' + self.type, False) # TODO: Place?
+    return CVar(self.place, self.reference, '*' + self.type) # TODO: Place? Think of passing as argument
 
   def set(self, newValue, selfExpr, newExpr, scope, asArg = False):
-    self.checkAndReplaceTypes(newValue, selfExpr, newExpr, scope)
+    self.checkTypes(newValue, selfExpr, newExpr, scope)
 
     text = ''
     reg = 'rax' # TODO: Alloc a register
@@ -24,7 +24,7 @@ class CVar(Var):
       text += f'  lea {reg}, [{newValue.reference}]\n'
     elif isinstance(newExpr, CallExpr):
       text += newValue
-      reg = 'rax' # TODO: Multiple returns
+      reg = 'rax'
     elif isinstance(newExpr, IntrinsicExpr): # TODO: Depends on the type
       reg = newValue
     # elif isinstance(newExpr, EmptyExpr): # TODO: URGENT
@@ -73,7 +73,7 @@ def Compile(fileExpr, to = 'main.asm'):
 
   scope = CScope()
 
-  top = 'global main\n'
+  top = 'global main\n' # TODO: Multiple files
   data = 'section .data\n'
   text = 'section .text\n'
 

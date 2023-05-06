@@ -2,35 +2,28 @@ from expr import *
 from debug import log, error
 
 class Var:
-  def __init__(self, _type = '', typeless = None):
+  def __init__(self, _type):
     self.type = _type
-    self.typeless = self.type == '' if typeless is None else typeless
+    self.isPointer = _type.startswith('*')
   def __repr__(self):
-    return f'var<{self.type}, {self.typeless}>'
+    return f'var<{self.type}>'
 
-  def checkAndReplaceTypes(self, newValue, selfExpr, valExpr, scope):
+  def checkTypes(self, newValue, selfExpr, valExpr, scope):
     # TODO: Clean
-    if isinstance(newValue, Var) and self.type != newValue.type:
-      if not self.typeless:
-        error('[checkAndReplaceTypes] Wrong types:', self, valExpr, scope = scope)
-      self.type = newValue.type
-    elif isinstance(valExpr, IntrinsicExpr) and self.type != valExpr.type:
-      if not self.typeless:
-        error('[checkAndReplaceTypes] Wrong types:', self, valExpr, scope = scope)
-      self.type = valExpr.type
+    theirType = None
+    if isinstance(newValue, Var):
+      theirType = newValue.type
+    elif isinstance(valExpr, IntrinsicExpr):
+      theirType = valExpr.type
     elif isinstance(valExpr, CallExpr):
-      hack = Expr.construct(('fun', valExpr.name, '', ())) 
-      fun = scope.findFun(hack) # TODO: Use signature
-      if self.type != fun.type:
-        if not self.typeless:
-          error('[checkAndReplaceTypes] Wrong types:', self, valExpr, scope = scope)
-        self.type = fun.type
-    elif isinstance(valExpr, EmptyExpr): # TODO: URGENT
-      error('[checkAndReplaceTypes] EmptyExpr', self, valExpr, scope = scope)
-    # elif isinstance(valExpr, ): # TODO: Other types
+      fun = scope.findFun(valExpr.name)
+      theirType = fun.type
+    # elif isinstance(valExpr, ): # TODO: Other types of expressions
+    else:
+      error('[checkTypes] Unhandled expression:', selfExpr, valExpr, scope = scope)
 
-  def isPointer(self):
-    return self.type.startswith('*')
+    if self.type != theirType:
+      error('[checkTypes] Wrong types:', selfExpr, valExpr, scope = scope)
 
 class Scope:
   def __init__(self, parent = None):
@@ -54,21 +47,20 @@ class Scope:
     return type(self)(parent = self.parent)
 
   def defFun(self, fun):
-    if not self.findFun(fun) is None:
-      error('[defFun]', scope = self, expr = fun)
-    self.funs[fun.name] = fun # TODO: Define based on full name/params/resultType
+    if not self.findFun(fun.name) is None:
+      error(f'[defFun] A function with the name "{fun.name}" already exists', scope = self, expr = fun)
+    self.funs[fun.name] = fun
 
-  def findFun(self, fun):
-    if fun.name in self.funs: # TODO: Match based on full name/params/resultType
-      return self.funs[fun.name]
+  def findFun(self, name):
+    if name in self.funs:
+      return self.funs[name]
     if not self.parent is None:
-      return self.parent.findFun(fun)
+      return self.parent.findFun(name)
     return None
 
   def defVar(self, _def, local = False):
-    # TODO: Repeated code with defFun
     if not self.findVar(_def.name, localOnly = local) is None:
-      error('[defVar]', local, scope = self, expr = _def)
+      error(f'[defVar] A variable with the name "{_def.name}" already exists', local, scope = self, expr = _def)
     var = self.newVar(_def)
     self.vars[_def.name] = var
     return var
@@ -80,11 +72,6 @@ class Scope:
     if not localOnly and not self.parent is None:
       return self.parent.findVar(name)
     return None
-
-  def findMainFun(self):
-    if not 'main' in self.funs: # NOTE: Only match based on name
-      error('[findMainFun]', scope = self)
-    return self.funs['main']
 
   def getLabel(self, label):
     if self.parent is not None and self.parent.parent is not None: # Go upstreams until the function scope # TODO: Simplify

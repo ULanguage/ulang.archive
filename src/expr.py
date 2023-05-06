@@ -76,7 +76,7 @@ class FileExpr(Expr):
 
     # Begin executing main function
     if isMain:
-      main = scope.findMainFun()
+      main = scope.findFun('main')
       return main.exec(scope.child(), isMain = True)
 
     return None
@@ -94,7 +94,7 @@ class FileExpr(Expr):
         self.data += _def
 
     # Compile functions # NOTE: The order doesn't matter
-    main = scope.findMainFun()
+    main = scope.findFun('main')
     for expr in self.exprs:
       if isinstance(expr, FunExpr):
         self.text += expr.comp(scope.child(), isMain = expr == main)
@@ -157,6 +157,8 @@ class FunExpr(Expr):
     # text += '_start:\n' if isMain else ''
     text += f'{self.name}:\n'
 
+    # TODO: If isMain, receive C args
+
     text += self.textBuildSF(scope)
 
     text += s
@@ -188,13 +190,7 @@ class FunExpr(Expr):
       text += f'  add rsp, {l * 8}\n' # TODO: Based on each variable's length
     text += '  pop rbp\n'
 
-    if isMain:
-      text += '  ; Exit\n'
-      text += '  mov rdi, rax\n' 
-      text += '  mov rax, 60\n'
-      text += '  syscall\n'
-    else:
-      text += '  ret\n'
+    text += '  ret\n'
 
     return text
 
@@ -713,7 +709,7 @@ class ArithmExpr(Expr):
 
 #************************************************************
 #* IntrinsicExpr ********************************************
-# (int64, int64 value), (int32, int32 value)
+# (int, int value)
 # Intrinsic types
 
 class IntrinsicExpr(Expr):
@@ -813,8 +809,7 @@ ExprTypes = {
   '/': ArithmExpr,
   '%': ArithmExpr,
 
-  'int64': IntrinsicExpr,
-  'int32': IntrinsicExpr,
+  'int': IntrinsicExpr,
 
   'debug': DebugExpr,
 }

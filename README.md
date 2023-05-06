@@ -12,8 +12,8 @@
     - [ ] Data structures (not classes though)
     - [ ] Main arguments
   * Removeing what isn't needed (but is already implemented or halfway)
-    - [ ] Variable types
-    - [ ] Calling functions based on more than name
+    - [X] Variable types
+    - [X] Calling functions based on more than name
 - [ ] Implement Rule 110 to prove it's Turing-complete, mark as (v0.1.0)
 - [ ] Write a self-compiler/interpreter. Tag as v0.2.0
   * Must read .parsed.u files, and:
