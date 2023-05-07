@@ -406,6 +406,7 @@ class ReturnExpr(Expr):
   def comp(self, scope):
     text = self.compComment()
 
+    rax = None
     if isinstance(self.expr, EmptyExpr):
       pass # TODO: Check current return type?
     else:
@@ -421,7 +422,7 @@ class ReturnExpr(Expr):
       if isinstance(self.expr, EmptyExpr):
         log('[ReturnExpr] Empty return', level = 'warning') # TODO: Check it's valid
       else:
-        text += res.putInto(res, scope)
+        text += res.putInto(rax, scope)
 
       scope.freeReg(res)
 
