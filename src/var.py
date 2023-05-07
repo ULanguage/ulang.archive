@@ -3,78 +3,151 @@ from debug import log, error
 class Var:
   def __init__(self, place, reference, _type):
     self.place = place
+
     self.reference = reference
     self.type = _type
     self.isPointer = _type.startswith('*')
-  def __repr__(self):
-    return f'var<{self.place}, {self.reference}, {self.type}>'
 
-  def putValue(self, reg, deref = False):
-    if deref:
-      text = f'  lea {reg}, [{self.reference}]\n'
-      return text + f'  mov {reg}, [{reg}]\n'
-    else:
-      return f'  mov {reg}, [{self.reference}]\n'
+    self.value = reference if place in ['intrinsic', 'reg'] else f'[{reference}]' # TODO: Depends on value
+    self.refed = False
+    self.derefed = False
 
-  def pointer(self):
-    return Var(self.place, self.reference, '*' + self.type) # TODO: Place? Think of passing as argument
-
-  def set(self, newValue, selfExpr, newExpr, scope, asArg = False):
-    self.checkTypes(newValue, selfExpr, newExpr, scope)
-
-    text = ''
-    reg = 'rax' # TODO: Alloc a register
-    if isinstance(newExpr, VarExpr) or isinstance(newExpr, DerefExpr):
-      text += f'  mov {reg}, [{newValue.reference}]\n'
-    elif isinstance(newExpr, RefExpr):
-      text += f'  lea {reg}, [{newValue.reference}]\n'
-    elif isinstance(newExpr, CallExpr):
-      text += newValue
-      reg = 'rax'
-    elif isinstance(newExpr, IntrinsicExpr): # TODO: Depends on the type
-      reg = newValue
-    # elif isinstance(newExpr, EmptyExpr): # TODO: URGENT
-    # elif isinstance(newExpr, ): # TODO: Other types
-    else:
-      text += f'  mov {reg}, {newValue}\n'
-
-    size = ''
     if self.isPointer:
-      size = 'qword'
+      self.size = 'qword'
     else:
       match self.type:
-        case 'bool' | 'char' | 'int8': size = 'byte'
-        case 'int16': size = 'word'
-        case 'int32': size = 'dword'
-        case 'int64': size = 'qword'
+        case 'bool' | 'char' | 'int8': self.size = 'byte'
+        case 'int16': self.size = 'word'
+        case 'int32': self.size = 'dword'
+        case 'int64': self.size = 'qword'
 
-    if asArg:
-      text += f'  push {size} {reg}\n'
-    elif isinstance(selfExpr, DerefExpr):
-      reg2 = 'rbx' # TODO: Alloc register
-      text += f'  mov {size} {reg2}, [{self.reference}]\n'
-      text += f'  mov {size} [{reg2}], {reg}\n'
+  def __repr__(self):
+    return f'var<{self.place}, {self.reference}, {self.type}, {self.refed}, {self.derefed}>'
+
+  def putInto(self, into, scope):
+    if into.place == 'intrinsic' and not into.derefed:
+      error('[Var.putInto] Can\' put into intrinsic', self, into)
+    elif self.type != into.type:
+      error('[Var.putInto] Wrong types:', self, into)
+
+    text = ''
+
+    bar = 'lea' if self.refed else 'mov'
+
+    # SEE: https://docs.google.com/spreadsheets/d/18ub3Nthb5VFduQ35bTkvx3cy-fi4NeufmC474_UgQz8/edit?usp=sharing
+    # TODO: Clean
+    # TODO: I think there's some extra self.size
+    match [self.derefed, self.place, into.derefed, into.place]:
+      case (
+        [False, 'intrinsic' | 'reg', False, _] |
+        [False, _, False, 'reg']
+      ):
+        text += f'  {bar} {self.size} {into.value}, {self.value}\n' # TODO: Should mix bar with self intrinsic and reg?
+
+      case [False, 'intrinsic' | 'reg', True, 'intrinsic' | 'reg']:
+        text += f'  mov {self.size} [{into.value}], {self.value}\n'
+
+      case [False, 'intrinsic' | 'reg', True, _]:
+        reg = 'rax' # TODO: Alloc register
+        text += f'  lea {reg}, {into.value}\n'
+        text += f'  mov {self.size} [{reg}], {self.value}\n'
+
+      case [False, _, False, _]:
+        reg = 'rax' # TODO: Alloc register
+        text += f'  {bar} {self.size} {reg}, {self.value}\n'
+        text += f'  mov {self.size} {into.value}, {reg}\n'
+
+      case [False, _, True, 'intrinsic' | 'reg']:
+        reg = 'rax' # TODO: Alloc register
+        text += f'  {bar} {self.size} {reg}, {self.value}\n'
+        text += f'  mov {self.size} [{into.value}], {reg}\n'
+
+      case [False, _, True, _]:
+        reg0, reg1 = 'rax', 'rbx' # TODO: Alloc register
+        text += f'  lea {reg0}, {into.value}\n'
+        text += f'  {bar} {self.size} {reg1}, {self.value}\n'
+        text += f'  mov {self.size} [{reg0}], {reg1}\n'
+
+      case [True, 'intrinsic' | 'reg', False, 'reg']:
+        text += f'  mov {self.size} {into.value}, [{self.value}]\n'
+
+      case [True, 'intrinsic' | 'reg', False, _]:
+        reg = 'rax' # TODO: Alloc register
+        text += f'  mov {self.size} {reg}, [{self.value}]\n'
+        text += f'  mov {self.size} {into.value}, {reg}\n'
+
+      case [True, 'intrinsic' | 'reg', True, 'intrinsic' | 'reg']:
+        reg = 'rax' # TODO: Alloc register
+        text += f'  mov {self.size} {reg}, [{self.value}]\n'
+        text += f'  mov {self.size} [{into.value}], {reg}\n'
+
+      case [True, 'intrinsic' | 'reg', True, _]:
+        reg0, reg1 = 'rax', 'rbx' # TODO: Alloc register
+        text += f'  lea {reg0}, {into.value}\n'
+        text += f'  mov {self.size} {reg1}, [{self.value}]\n'
+        text += f'  mov {self.size} [{reg0}], {reg1}\n'
+
+      case [True, _, False, 'reg']:
+        reg = 'rax' # TODO: Alloc register
+        text += f'  lea {reg}, {self.value}\n'
+        text += f'  mov {self.size} {into.value}, [{reg}]\n'
+
+      case [True, _, False, _]:
+        reg = 'rax' # TODO: Alloc register
+        text += f'  lea {reg}, {self.value}\n'
+        text += f'  mov {self.size} {reg}, [{reg}]\n'
+        text += f'  mov {self.size} {into.value}, {reg}\n'
+
+      case [True, _, True, 'intrinsic' | 'reg']:
+        reg0 = 'rax' # TODO: Alloc register
+        text += f'  lea {reg}, {self.value}\n'
+        text += f'  mov {self.size} {reg}, [{reg}]\n'
+        text += f'  mov {self.size} [{into.value}], {reg}\n'
+
+      case [True, _, True, _]:
+        reg0, reg1 = 'rax', 'rbx' # TODO: Alloc register
+        text += f'  lea {reg0}, {into.value}\n'
+        text += f'  lea {reg1}, {self.value}\n'
+        text += f'  mov {self.size} {reg1}, [{reg1}]\n'
+        text += f'  mov {self.size} [{reg0}], {reg1}\n'
+
+      case _: 
+        error('[Var.putInto] Missing case:', self, into)
+
+    self.refed = False
+    into.refed = False
+    self.derefed = False
+    into.derefed = False
+    return text
+
+  def passAsArg(self, deref = False):
+    text = ''
+
+    reg = 'rax' # TODO: Alloc register
+
+    # TODO: Repeated code with putInto
+    if deref:
+      if not self.isPointer:
+        error('[Var.passAsArg] Not a pointer:', self)
+      text += f'  lea {reg}, {self.value}\n' 
+      text += f'  mov {self.size} {reg}, [{reg}]\n' # TODO: Depends on type
+    elif self.place in ['reg', 'intrinsic']:
+      reg = self.value
     else:
-      text += f'  mov {size} [{self.reference}], {reg}\n'
-
-    # TODO: Free reg?
+      text += f'  mov {self.size} {reg}, {self.value}\n'
+    text += f'  push {self.size} {reg}\n' # TODO: Depends on type
 
     return text
 
-  def checkTypes(self, newValue, selfExpr, valExpr, scope):
-    # TODO: Clean
-    theirType = None
-    if isinstance(newValue, Var):
-      theirType = newValue.type
-    elif isinstance(valExpr, IntrinsicExpr):
-      theirType = valExpr.type
-    elif isinstance(valExpr, CallExpr):
-      fun = scope.findFun(valExpr.name)
-      theirType = fun.type
-    # elif isinstance(valExpr, ): # TODO: Other types of expressions
-    else:
-      error('[checkTypes] Unhandled expression:', selfExpr, valExpr, scope = scope)
+  def ref(self):
+    var = Var(self.place, self.reference, '*' + self.type) # TODO: Place? Think of passing as argument
+    var.refed = True
+    return var
 
-    if self.type != theirType:
-      error('[checkTypes] Wrong types:', selfExpr, valExpr, scope = scope)
+  def deref(self):
+    if not self.isPointer:
+      error('[Var.deref] Not a pointer:', self)
 
+    var = Var(self.place, self.reference, self.type[1:]) # TODO: Place? Original 
+    var.derefed = True
+    return var

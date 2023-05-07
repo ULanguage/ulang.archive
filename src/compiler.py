@@ -15,5 +15,3 @@ def Compile(fileExpr, to = 'main.asm'):
       fout.write(text)
 
   # TODO: Call nasm and ld
-
-  return res
