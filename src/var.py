@@ -138,22 +138,38 @@ class Var:
     return text
 
   def passAsArg(self, scope):
-    # TODO: Broken
     if self.derefed and not self.isPointer:
       error('[Var.passAsArg] Not a pointer:', self)
 
     text = ''
-    reg = 'rax' # TODO: Alloc reg
 
-    # TODO: Repeated code with putInto # TODO: Fix, similar to putInto
-    if self.derefed:
-      text += f'  lea {reg}, {self.value}\n' 
-      text += f'  mov {self.size} {reg}, [{reg}]\n' # TODO: Depends on type
-    elif self.place in ['reg', 'intrinsic']:
-      reg = self.value
-    else:
-      text += f'  mov {self.size} {reg}, {self.value}\n'
-    text += f'  push {self.size} {reg}\n' # TODO: Depends on type
+    bar = 'lea' if self.refed else 'mov'
+
+    match [self.derefed, self.place]:
+      case [False, 'intrinsic' | 'reg']:
+        text += f'  push {self.size} {self.value}\n'
+
+      case [False, _]:
+        reg = scope.allocReg()
+        text += f'  {bar} {reg.value}, {self.value}\n'
+        text += f'  push {self.size} {reg.value}\n'
+        scope.freeReg(reg)
+
+      case [True, 'intrinsic' | 'reg']:
+        reg = scope.allocReg()
+        text += f'  mov {self.size} {reg.value}, [{self.value}]\n'
+        text += f'  push {reg.value}\n'
+        scope.freeReg(reg)
+
+      case [True, _]:
+        reg = scope.allocReg()
+        text += f'  lea {reg.value}, {self.value}\n'
+        text += f'  {bar} {self.size} {reg.value}, [{reg.value}]\n'
+        text += f'  push {self.size} {reg.value}\n'
+        scope.freeReg(reg)
+
+      case _:
+        error('[Var.passAsArg] Missing case:', self)
 
     self.refed = False
     self.derefed = False

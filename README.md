@@ -7,6 +7,7 @@
     - [X] int8 = char, int16, int32, int64
     - [X] Basic array manipulation
     - [X] Basic string manipulation
+    - [X] Basic register management
     - [ ] Export functions and import other .u files
     - [ ] Import and call C functions
     - [ ] For loops
