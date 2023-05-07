@@ -3,11 +3,17 @@
 
 * I think it's close to being able to compile/interpret itself, so next is:  
   * Implementing what is actually needed to compile/interpret itself
-    - [ ] Calling C's stdlib for syscalls and malloc (temporary later will be implemented in U)
-    - [ ] Extern (C or U) -> import?
-    - [ ] Boolean logic
+    - [X] Boolean logic
+    - [ ] int8, int16, int32, int64
+    - [ ] Casting variables (convert intrinsic)
     - [ ] Basic array manipulation
     - [ ] Basic string manipulation
+    - [ ] Calling C's stdlib for syscalls and malloc (temporary later will be implemented in U).  
+    Since this would be too hard for interpretation (for now), I'll have only the next few functions:
+      * malloc and free
+      * read, write, open, close
+      * exit
+    - [ ] Import other .u files
     - [ ] For loops
     - [ ] Data structures (not classes though)
     - [ ] Main arguments

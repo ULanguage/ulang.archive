@@ -147,7 +147,11 @@ class FunExpr(Expr):
     # Compile expressions in order
     for expr in self.exprs:
       # TODO: Check types?
-      s += expr.comp(scope)
+      if isinstance(expr, ArithmExpr): # TODO: Temporary, clean
+        _s, _ = expr.comp(scope)
+        s += _s
+      else:
+        s += expr.comp(scope)
 
     return self.getText(scope, s, isMain)
 
@@ -591,7 +595,8 @@ class IfExpr(Expr):
     falseLabel = child.getLabel('.__else')
     endLabel = child.getLabel('.__end')
 
-    text += f'  cmp rax, 0\n' 
+    false = Expr.construct(('bool', False)).comp(scope)
+    text += f'  cmp rax, {false}\n' 
     text += f'  je {falseLabel}\n'
 
     text += f'{trueLabel}:\n'
@@ -617,7 +622,9 @@ class IfExpr(Expr):
 # (*, Expr x, Expr y)
 # (/, Expr x, Expr y)
 # (%, Expr x, Expr y)
-# TODO: Negation
+# (&&, Expr x, Expr y)
+# (||, Expr x, Expr y)
+# (!, Expr x, EmptyExpr)
 
 class ArithmExpr(Expr):
   def __init__(self, expr):
@@ -661,6 +668,9 @@ class ArithmExpr(Expr):
       case '*': return x * y
       case '/': return x // y
       case '%': return x % y
+      case '&&': return x and y
+      case '||': return x or y
+      case '!': return not x
 
   def compAction(self, x, y, reg, scope):
     text = ''
@@ -684,6 +694,15 @@ class ArithmExpr(Expr):
         text += f'  mov {reg}, {x}\n'
         text += f'  idiv qword {y}\n' # TODO: unsigned
         text += f'  mov {reg}, rdx\n'
+      case '&&':
+        text += f'  mov {reg}, {x}\n'
+        text += f'  and {reg}, {y}\n'
+      case '||':
+        text += f'  mov {reg}, {x}\n'
+        text += f'  or {reg}, {y}\n'
+      case '!':
+        text += f'  mov {reg}, {x}\n'
+        text += f'  not {reg}\n'
 
     return text
 
@@ -691,9 +710,9 @@ class ArithmExpr(Expr):
     x = expr.exec(scope)
     if isinstance(expr, VarExpr) or isinstance(expr, DerefExpr):
       return x.value
-    elif isinstance(expr, IntrinsicExpr):
+    elif isinstance(expr, IntrinsicExpr) or (isinstance(expr, EmptyExpr) and expr == self.y and self.action == '!'):
       return x
-    # elif isinstance(expr, ): # TODO: Other types
+    # TODO: Other types
     else:
       error('[ArithmExpr] Type not supported', x, expr, scope = scope, expr = self)
 
@@ -701,7 +720,7 @@ class ArithmExpr(Expr):
     x = expr.comp(scope)
     if isinstance(expr, VarExpr) or isinstance(expr, DerefExpr):
       return f'[{x.reference}]'
-    elif isinstance(expr, IntrinsicExpr):
+    elif isinstance(expr, IntrinsicExpr) or (isinstance(expr, EmptyExpr) and expr == self.y and self.action == '!'):
       return x
     # elif isinstance(expr, ): # TODO: Other types
     else:
@@ -709,7 +728,7 @@ class ArithmExpr(Expr):
 
 #************************************************************
 #* IntrinsicExpr ********************************************
-# (int, int value)
+# (int, int value), (bool, bool value)
 # Intrinsic types
 
 class IntrinsicExpr(Expr):
@@ -721,11 +740,18 @@ class IntrinsicExpr(Expr):
     return f'({self.type}, {self.value})'
 
   def define(self):
-    return f'dq {self.value}' # TODO: Depends on the actual type
+    # NOTE: Only for compilation
+    match self.type:
+      case 'bool': return f'db {int(self.value)}'
+      case _: return f'dq {self.value}'
+
   def exec(self, scope):
     return self.value
+
   def comp(self, scope):
-    return self.value # TODO: Depends on the actual type
+    match self.type:
+      case 'bool': return int(self.value)
+      case _: return self.value
 
 #************************************************************
 #* DebugExpr ************************************************
@@ -808,8 +834,12 @@ ExprTypes = {
   '*': ArithmExpr,
   '/': ArithmExpr,
   '%': ArithmExpr,
+  '&&': ArithmExpr,
+  '||': ArithmExpr,
+  '!': ArithmExpr,
 
   'int': IntrinsicExpr,
+  'bool': IntrinsicExpr,
 
   'debug': DebugExpr,
 }

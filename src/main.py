@@ -16,7 +16,9 @@ if __name__ == '__main__':
     ('def', 'one', 'int', ('int', 49)), # Character '1'
 
     ('fun', 'main', 'int', (),
-      ('return', ('var', 'zero')),
+      ('&&', ('bool', False), ('bool', False)),
+      ('||', ('bool', True), ('bool', False)),
+      ('!', ('bool', True), ()),
     ),
   ))
 
