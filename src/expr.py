@@ -119,7 +119,8 @@ class FunExpr(Expr):
 
     # Compile expressions in order
     for expr in self.exprs:
-      expr.comp(scope)
+      res = expr.comp(scope)
+      scope.freeReg(res)
       s += expr.text
 
     return self.getText(scope, s, isMain)
@@ -206,6 +207,8 @@ class DefExpr(Expr):
       text += self.value.text
       text += value.putInto(var, scope)
 
+      scope.freeReg(value)
+
     self.text = text
     return var
 
@@ -234,7 +237,8 @@ class ParamExpr(Expr):
     if var is None:
       var = self.define(scope)
       value = self.value.comp(scope)
-      text += value.passAsArg() # TODO
+      text += value.passAsArg(scope)
+      scope.freeReg(value)
     
     self.text = text
     return var
@@ -328,6 +332,7 @@ class SetExpr(Expr):
     text += self.B.text
 
     text += B.putInto(A, scope)
+    scope.freeReg(B)
 
     self.text = text
     return A
@@ -372,16 +377,19 @@ class CallExpr(Expr):
         value = arg.comp(scope)
 
         text += arg.text
-        text += value.passAsArg()
+        text += value.passAsArg(scope)
+
+        scope.freeReg(value)
       else:
-        param.comp(sibling)
+        res = param.comp(sibling)
         text += param.text
+        scope.freeReg(res)
 
     text += f'  call {fun.name}\n' # TODO: Call C functions
     text += f'  add rsp, {len(fun.params) * 8}\n' # Restore the stack # TODO: Depends on the size of the params
     
     self.text = text
-    return Var('reg', 'rax', fun.type) # TODO: More than one return
+    return scope.allocReg('rax', fun.type) # TODO: More than one return
 
 #************************************************************
 #* ReturnExpr ***********************************************
@@ -401,7 +409,10 @@ class ReturnExpr(Expr):
     if isinstance(self.expr, EmptyExpr):
       pass # TODO: Check current return type?
     else:
+      rax = scope.allocReg('rax')
       res = self.expr.comp(scope)
+
+      rax = Var(rax.place, rax.reference, res.type) # Replace rax's type
 
       # TODO: Check current return type and res' type
 
@@ -410,12 +421,14 @@ class ReturnExpr(Expr):
       if isinstance(self.expr, EmptyExpr):
         log('[ReturnExpr] Empty return', level = 'warning') # TODO: Check it's valid
       else:
-        text += res.putInto(Var('reg', 'rax', res.type), scope)
+        text += res.putInto(res, scope)
+
+      scope.freeReg(res)
 
     text += '  jmp .__ret\n'
 
     self.text = text
-    return None # TODO: What should this return?
+    return rax
 
 #************************************************************
 #* IfExpr ***************************************************
@@ -440,18 +453,21 @@ class IfExpr(Expr):
     res = self.cond.comp(child) 
     text += self.cond.text
 
-    reg = 'rax' # TODO: Alloc register
+    reg = child.allocReg()
     if isinstance(self.value, EmptyExpr):
       log('[ReturnExpr] Empty return', level = 'warning') # TODO: Check it's valid
     else:
       text += res.putInto(Var('reg', reg, res.type), scope)
+      child.freeReg(res)
 
     trueLabel = child.getLabel('.__true')
     falseLabel = child.getLabel('.__else')
     endLabel = child.getLabel('.__end')
 
-    text += f'  cmp rax, {FALSE.comp(scope)}\n' # TODO: FALSE.comp? Clean this!
+    text += f'  cmp {reg}, {FALSE.comp(scope)}\n' # TODO: FALSE.comp? Clean this!
     text += f'  je {falseLabel}\n'
+    
+    child.freeReg(reg)
 
     text += f'{trueLabel}:\n'
 
@@ -502,14 +518,21 @@ class ArithmExpr(Expr):
     if x.type != y.type:
       error('[ArithmExpr] Wrong types', self)
 
-    regX, regY = 'rax', 'rbx' # TODO: Alloc registers
-    text += x.putInto(Var('reg', regX, x.type), scope)
-    text += y.putInto(Var('reg', regY, y.type), scope)
-    text += self.compAction(regX, regY, scope)
+    regX = scope.allocReg()
+    regX = Var(regX.place, regX.reference, x.type)
+    text += x.putInto(regX, scope)
+    scope.freeReg(x)
 
-    # TODO: Free register?
+    regY = scope.allocReg()
+    regY = Var(regY.place, regY.reference, y.type)
+    text += y.putInto(regY, scope)
+    scope.freeReg(y)
+
+    text += self.compAction(regX.value, regY.value, scope)
+    scope.freeReg(regY)
+
     self.text = text
-    return Var('intrinsic', 'rax', x.type) # TODO: Place? # TODO: Register?
+    return regX
 
   def compAction(self, x, y, scope):
     text = ''
@@ -520,12 +543,15 @@ class ArithmExpr(Expr):
       case '-':
         text += f'  sub {x}, {y}\n'
       case '*':
+        # TODO: Alloc rax, and high part
         text += f'  imul {x}, {y}\n' # TODO: unsigned
         text += f'  mov {x}, rax\n' # TODO: High part
       case '/':
+        # TODO: Alloc rax,
         text += f'  idiv qword {y}\n' # TODO: unsigned # TODO: qword depends on size
         text += f'  mov {x}, rax\n'
       case '%':
+        # TODO: Alloc rdx,
         text += f'  idiv qword {y}\n' # TODO: unsigned # TODO: qword depends on size
         text += f'  mov {x}, rdx\n'
       case '&&':

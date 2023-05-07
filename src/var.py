@@ -48,68 +48,85 @@ class Var:
         text += f'  mov {self.size} [{into.value}], {self.value}\n'
 
       case [False, 'intrinsic' | 'reg', True, _]:
-        reg = 'rax' # TODO: Alloc register
-        text += f'  lea {reg}, {into.value}\n'
-        text += f'  mov {self.size} [{reg}], {self.value}\n'
+        reg = scope.allocReg()
+        text += f'  lea {reg.value}, {into.value}\n'
+        text += f'  mov {self.size} [{reg.value}], {self.value}\n'
+        scope.freeReg(reg)
 
       case [False, _, False, _]:
-        reg = 'rax' # TODO: Alloc register
-        text += f'  {bar} {self.size} {reg}, {self.value}\n'
-        text += f'  mov {self.size} {into.value}, {reg}\n'
+        reg = scope.allocReg()
+        text += f'  {bar} {self.size} {reg.value}, {self.value}\n'
+        text += f'  mov {self.size} {into.value}, {reg.value}\n'
+        scope.freeReg(reg)
 
       case [False, _, True, 'intrinsic' | 'reg']:
-        reg = 'rax' # TODO: Alloc register
-        text += f'  {bar} {self.size} {reg}, {self.value}\n'
-        text += f'  mov {self.size} [{into.value}], {reg}\n'
+        reg = scope.allocReg()
+        text += f'  {bar} {self.size} {reg.value}, {self.value}\n'
+        text += f'  mov {self.size} [{into.value}], {reg.value}\n'
+        scope.freeReg(reg)
 
       case [False, _, True, _]:
-        reg0, reg1 = 'rax', 'rbx' # TODO: Alloc register
+        reg0 = scope.allocReg()
+        reg1 = scope.allocReg()
         text += f'  lea {reg0}, {into.value}\n'
         text += f'  {bar} {self.size} {reg1}, {self.value}\n'
         text += f'  mov {self.size} [{reg0}], {reg1}\n'
+        scope.freeReg(reg0)
+        scope.freeReg(reg1)
 
       case [True, 'intrinsic' | 'reg', False, 'reg']:
         text += f'  mov {self.size} {into.value}, [{self.value}]\n'
 
       case [True, 'intrinsic' | 'reg', False, _]:
-        reg = 'rax' # TODO: Alloc register
-        text += f'  mov {self.size} {reg}, [{self.value}]\n'
-        text += f'  mov {self.size} {into.value}, {reg}\n'
+        reg = scope.allocReg()
+        text += f'  mov {self.size} {reg.value}, [{self.value}]\n'
+        text += f'  mov {self.size} {into.value}, {reg.value}\n'
+        scope.freeReg(reg)
 
       case [True, 'intrinsic' | 'reg', True, 'intrinsic' | 'reg']:
-        reg = 'rax' # TODO: Alloc register
-        text += f'  mov {self.size} {reg}, [{self.value}]\n'
-        text += f'  mov {self.size} [{into.value}], {reg}\n'
+        reg = scope.allocReg()
+        text += f'  mov {self.size} {reg.value}, [{self.value}]\n'
+        text += f'  mov {self.size} [{into.value}], {reg.value}\n'
+        scope.freeReg(reg)
 
       case [True, 'intrinsic' | 'reg', True, _]:
-        reg0, reg1 = 'rax', 'rbx' # TODO: Alloc register
+        reg0 = scope.allocReg()
+        reg1 = scope.allocReg()
         text += f'  lea {reg0}, {into.value}\n'
         text += f'  mov {self.size} {reg1}, [{self.value}]\n'
         text += f'  mov {self.size} [{reg0}], {reg1}\n'
+        scope.freeReg(reg0)
+        scope.freeReg(reg1)
 
       case [True, _, False, 'reg']:
-        reg = 'rax' # TODO: Alloc register
-        text += f'  lea {reg}, {self.value}\n'
-        text += f'  mov {self.size} {into.value}, [{reg}]\n'
+        reg = scope.allocReg()
+        text += f'  lea {reg.value}, {self.value}\n'
+        text += f'  mov {self.size} {into.value}, [{reg.value}]\n'
+        scope.freeReg(reg)
 
       case [True, _, False, _]:
-        reg = 'rax' # TODO: Alloc register
-        text += f'  lea {reg}, {self.value}\n'
-        text += f'  mov {self.size} {reg}, [{reg}]\n'
-        text += f'  mov {self.size} {into.value}, {reg}\n'
+        reg = scope.allocReg()
+        text += f'  lea {reg.value}, {self.value}\n'
+        text += f'  mov {self.size} {reg.value}, [{reg.value}]\n'
+        text += f'  mov {self.size} {into.value}, {reg.value}\n'
+        scope.freeReg(reg)
 
       case [True, _, True, 'intrinsic' | 'reg']:
-        reg0 = 'rax' # TODO: Alloc register
-        text += f'  lea {reg}, {self.value}\n'
-        text += f'  mov {self.size} {reg}, [{reg}]\n'
-        text += f'  mov {self.size} [{into.value}], {reg}\n'
+        reg = scope.allocReg()
+        text += f'  lea {reg.value}, {self.value}\n'
+        text += f'  mov {self.size} {reg.value}, [{reg.value}]\n'
+        text += f'  mov {self.size} [{into.value}], {reg.value}\n'
+        scope.freeReg(reg)
 
       case [True, _, True, _]:
-        reg0, reg1 = 'rax', 'rbx' # TODO: Alloc register
+        reg0 = scope.allocReg()
+        reg1 = scope.allocReg()
         text += f'  lea {reg0}, {into.value}\n'
         text += f'  lea {reg1}, {self.value}\n'
         text += f'  mov {self.size} {reg1}, [{reg1}]\n'
         text += f'  mov {self.size} [{reg0}], {reg1}\n'
+        scope.freeReg(reg0)
+        scope.freeReg(reg1)
 
       case _: 
         error('[Var.putInto] Missing case:', self, into)
@@ -120,15 +137,16 @@ class Var:
     into.derefed = False
     return text
 
-  def passAsArg(self, deref = False):
+  def passAsArg(self, scope):
+    # TODO: Broken
+    if self.derefed and not self.isPointer:
+      error('[Var.passAsArg] Not a pointer:', self)
+
     text = ''
+    reg = 'rax' # TODO: Alloc reg
 
-    reg = 'rax' # TODO: Alloc register
-
-    # TODO: Repeated code with putInto
-    if deref:
-      if not self.isPointer:
-        error('[Var.passAsArg] Not a pointer:', self)
+    # TODO: Repeated code with putInto # TODO: Fix, similar to putInto
+    if self.derefed:
       text += f'  lea {reg}, {self.value}\n' 
       text += f'  mov {self.size} {reg}, [{reg}]\n' # TODO: Depends on type
     elif self.place in ['reg', 'intrinsic']:
@@ -137,6 +155,8 @@ class Var:
       text += f'  mov {self.size} {reg}, {self.value}\n'
     text += f'  push {self.size} {reg}\n' # TODO: Depends on type
 
+    self.refed = False
+    self.derefed = False
     return text
 
   def ref(self):

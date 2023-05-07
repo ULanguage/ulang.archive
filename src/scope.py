@@ -14,6 +14,7 @@ class Scope:
     self.broke = False
 
     self.labels = dict()
+    self.registers = { reg: True for reg in ['rax', 'rbx', 'rcx', 'rdx', 'rdi', 'rsi', 'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15'] }
   def __repr__(self):
     return f'Scope<{not self.parent is None}, {list(self.funs.keys())}, {list(self.vars.keys())}>'
 
@@ -76,3 +77,22 @@ class Scope:
   def varsWithPlace(self, place):
     return [var for _, var in self.vars.items() if var.place == place]
 
+  def allocReg(self, force = None, _type = 'int64'):
+    if self.parent.parent is not None: # Managed by function scope # TODO: Simplify
+      return self.parent.allocReg(force)
+
+    freeRegs = [reg for reg, free in self.registers.items() if free]
+    if len(freeRegs) == 0 or (force is not None and force not in freeRegs):
+      error('[Scope.allocReg] No free registers available, handle', force, _type, self)
+
+    reg = freeRegs[0]
+    if force is not None:
+      reg = force
+    self.registers[reg] = False
+    return Var('reg', reg, _type)
+
+  def freeReg(self, reg):
+    if isinstance(reg, Var) and reg.place == 'reg':
+      if self.parent.parent is not None: # Managed by function scope # TODO: Simplify
+        return self.parent.freeReg(reg)
+      self.registers[reg.reference] = True
