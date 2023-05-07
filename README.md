@@ -4,8 +4,7 @@
 * I think it's close to being able to compile/interpret itself, so next is:  
   * Implementing what is actually needed to compile/interpret itself
     - [X] Boolean logic
-    - [ ] int8, int16, int32, int64
-    - [ ] Casting variables (convert intrinsic)
+    - [X] int8 = char, int16, int32, int64
     - [ ] Basic array manipulation
     - [ ] Basic string manipulation
     - [ ] Calling C's stdlib for syscalls and malloc (temporary later will be implemented in U).  
@@ -17,7 +16,7 @@
     - [ ] For loops
     - [ ] Data structures (not classes though)
     - [ ] Main arguments
-  * Removeing what isn't needed (but is already implemented or halfway)
+  * Removing what isn't needed (but is already implemented or halfway)
     - [X] Variable types
     - [X] Calling functions based on more than name
 - [ ] Implement Rule 110 to prove it's Turing-complete, mark as (v0.1.0)
@@ -30,6 +29,7 @@
     * Inline assembly (replace libc?)
     * Better debug during exection
     * Better management of registers
+    * Casting variables (convert intrinsic)
     * "Levels"
     * ...
   1. Define a syntax

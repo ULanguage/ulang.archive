@@ -12,13 +12,15 @@ if __name__ == '__main__':
   setDebug(args.debugMask.split(','))
 
   main = Expr.construct(('file', 'main.u',
-    ('def', 'zero', 'int', ('int', 48)), # Character '0'
-    ('def', 'one', 'int', ('int', 49)), # Character '1'
+    ('def', 'zero', 'char', ('char', 48)), # Character '0'
+    ('def', 'one', 'char', ('char', 49)), # Character '1'
 
     ('fun', 'main', 'int', (),
-      ('&&', ('bool', False), ('bool', False)),
-      ('||', ('bool', True), ('bool', False)),
-      ('!', ('bool', True), ()),
+      ('def', 'foo0', 'char', ('char', 48)),
+      ('def', 'foo1', 'int8', ('int8', 48)),
+      ('def', 'foo2', 'int16', ('int16', 48)),
+      ('def', 'foo3', 'int32', ('int32', 48)),
+      ('def', 'foo4', 'int64', ('int64', 48)),
     ),
   ))
 

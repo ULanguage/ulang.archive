@@ -32,14 +32,21 @@ class CVar(Var):
     else:
       text += f'  mov {reg}, {newValue}\n'
 
+    size = ''
+    match self.type:
+      case 'bool' | 'char' | 'int8': size = 'byte'
+      case 'int16': size = 'word'
+      case 'int32': size = 'dword'
+      case 'int64': size = 'qword'
+
     if asArg:
-      text += f'  push {reg}\n'
+      text += f'  push {size} {reg}\n'
     elif isinstance(selfExpr, DerefExpr):
       reg2 = 'rbx' # TODO: Alloc register
-      text += f'  mov qword {reg2}, [{self.reference}]\n' # TODO: qword depends on type
-      text += f'  mov qword [{reg2}], {reg}\n' # TODO: qword depends on type
+      text += f'  mov {size} {reg2}, [{self.reference}]\n'
+      text += f'  mov {size} [{reg2}], {reg}\n'
     else:
-      text += f'  mov qword [{self.reference}], {reg}\n' # TODO: qword depends on type
+      text += f'  mov {size} [{self.reference}], {reg}\n'
 
     # TODO: Free reg?
 

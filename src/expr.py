@@ -35,7 +35,7 @@ class Expr:
       return EmptyExpr(expr)
 
     t = expr[0]
-    _class = ExprTypes.get(t, Expr)
+    _class = getExprType(t)
     return _class(expr)
 
 #************************************************************
@@ -688,11 +688,11 @@ class ArithmExpr(Expr):
         text += f'  mov {reg}, rax\n' # TODO: High part
       case '/':
         text += f'  mov {reg}, {x}\n'
-        text += f'  idiv qword {y}\n' # TODO: unsigned
+        text += f'  idiv qword {y}\n' # TODO: unsigned # TODO: qword depends on size
         text += f'  mov {reg}, rax\n'
       case '%':
         text += f'  mov {reg}, {x}\n'
-        text += f'  idiv qword {y}\n' # TODO: unsigned
+        text += f'  idiv qword {y}\n' # TODO: unsigned # TODO: qword depends on size
         text += f'  mov {reg}, rdx\n'
       case '&&':
         text += f'  mov {reg}, {x}\n'
@@ -743,7 +743,10 @@ class IntrinsicExpr(Expr):
     # NOTE: Only for compilation
     match self.type:
       case 'bool': return f'db {int(self.value)}'
-      case _: return f'dq {self.value}'
+      case 'char' | 'int8': return f'db {self.value}'
+      case 'int16': return f'dw {self.value}'
+      case 'int32': return f'dd {self.value}'
+      case 'int64': return f'dq {self.value}'
 
   def exec(self, scope):
     return self.value
@@ -812,34 +815,26 @@ class GenericExpr(Expr):
 #************************************************************
 #* Utils ****************************************************
 
-ExprTypes = {
-  'file': FileExpr,
+def getExprType(t):
+  match t:
+    case 'file': return FileExpr
 
-  'fun': FunExpr,
-  'def': DefExpr,
-  'param': ParamExpr,
-  'var': VarExpr,
+    case 'fun': return FunExpr
+    case 'def': return DefExpr
+    case 'param': return ParamExpr
 
-  'ref': RefExpr,
-  'deref': DerefExpr,
+    case 'set': return SetExpr
+    case 'call': return CallExpr
+    case 'return': return ReturnExpr
 
-  'set': SetExpr,
-  'call': CallExpr,
-  'return': ReturnExpr,
+    case 'if': return IfExpr
 
-  'if': IfExpr,
+    case 'var': return VarExpr
+    case 'ref': return RefExpr
+    case 'deref': return DerefExpr
 
-  '+': ArithmExpr,
-  '-': ArithmExpr,
-  '*': ArithmExpr,
-  '/': ArithmExpr,
-  '%': ArithmExpr,
-  '&&': ArithmExpr,
-  '||': ArithmExpr,
-  '!': ArithmExpr,
+    case '+' | '-' | '*' | '/' | '%' | '&&' | '||' | '!': return ArithmExpr
+    case 'char' | 'int8' | 'int16' | 'int32' | 'int64' | 'bool': return IntrinsicExpr
 
-  'int': IntrinsicExpr,
-  'bool': IntrinsicExpr,
-
-  'debug': DebugExpr,
-}
+    case 'debug': return DebugExpr
+  return Expr
