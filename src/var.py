@@ -1,4 +1,3 @@
-from expr import *
 from debug import log, error
 
 class Var:
@@ -9,6 +8,13 @@ class Var:
     self.isPointer = _type.startswith('*')
   def __repr__(self):
     return f'var<{self.place}, {self.reference}, {self.type}>'
+
+  def putValue(self, reg, deref = False):
+    if deref:
+      text = f'  lea {reg}, [{self.reference}]\n'
+      return text + f'  mov {reg}, [{reg}]\n'
+    else:
+      return f'  mov {reg}, [{self.reference}]\n'
 
   def pointer(self):
     return Var(self.place, self.reference, '*' + self.type) # TODO: Place? Think of passing as argument

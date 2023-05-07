@@ -1,4 +1,6 @@
 from copy import deepcopy
+
+from var import Var
 from debug import log, error, debugStep
 
 #************************************************************
@@ -7,7 +9,7 @@ from debug import log, error, debugStep
 class Expr:
   def __init__(self, expr):
     self._expr = expr
-    self.text = None
+    self.text = ''
   def __repr__(self):
     return f'({self._expr[0]}, ({len(self._expr[1:])})...)'
   def define(self, scope):
@@ -17,8 +19,7 @@ class Expr:
   def comp(self, scope):
     # U: Used to compile this expression
     log('[comp] TODO', self, level = 'error')
-    self.text = ''
-    return self.text
+    return None
 
   def compComment(self):
     return f'\n  ; {self}\n'
@@ -57,25 +58,35 @@ class FileExpr(Expr):
   def __repr__(self):
     return f'(file, {self.path}, ({len(self.exprs)})...)'
 
+  # TODO: Define to get exported functions
+
   def comp(self, scope, isMain = False):
     log(self, level = 'deepDebug')
-    self.data = ''
-    self.text = ''
+    exports = ''
+    data = 'section .data\n'
+    # TODO: .rodata
+    text = 'section .text\n'
 
-    # Define vars, types, funs # TODO: Anything else? options, libname, import
+    # Define vars, funs # TODO: Anything else? options, libname, import, types
     for expr in self.exprs:
       # TODO: Check types?
       _def = expr.define(scope)
-      if not _def is None: # TODO: Also put exported functions at the top
-        self.data += _def
+      if isinstance(expr, FunExpr):
+        exports += _def
+      elif isinstance(expr, DefExpr):
+        data += _def
+      else:
+        error('[FileExpr] Comp not yet supported', self)
 
     # Compile functions # NOTE: The order doesn't matter
     main = scope.findFun('main')
     for expr in self.exprs:
       if isinstance(expr, FunExpr):
-        self.text += expr.comp(scope.child(), isMain = expr == main)
+        expr.comp(scope.child(), isMain = expr == main)
+        text += expr.text
 
-    return self.data, self.text
+    self.text = exports + data + text
+    return self.text
 
 #************************************************************
 #* FunExpr **************************************************
@@ -94,6 +105,7 @@ class FunExpr(Expr):
 
   def define(self, scope):
     scope.defFun(self)
+    return f'global {self.name}\n' # TODO: Selective exports
 
   def comp(self, scope, isMain = False):
     log(self, level = 'deepDebug')
@@ -107,12 +119,8 @@ class FunExpr(Expr):
 
     # Compile expressions in order
     for expr in self.exprs:
-      # TODO: Check types?
-      if isinstance(expr, ArithmExpr): # TODO: Temporary, clean
-        _s, _ = expr.comp(scope)
-        s += _s
-      else:
-        s += expr.comp(scope)
+      expr.comp(scope)
+      s += expr.text
 
     return self.getText(scope, s, isMain)
 
@@ -174,33 +182,33 @@ class DefExpr(Expr):
     return f'(def, {self.name}, {self.value})'
 
   def define(self, scope):
+    # NOTE: Only for comp
     scope.defVar(self)
 
-    # NOTE: Only for comp
     text = self.compComment()
     text += f'{self.name}: '
     if isinstance(self.value, EmptyExpr):
       return text + 'dq 0\n' # TODO: Reserve space for it's type
     elif isinstance(self.value, IntrinsicExpr):
       return text + f'{self.value.define()}\n'
-    # else: pass # TODO: Other types, queue for main to comp it
+    else: # TODO: Other types, queue for main to comp it
+      error('[DefExpr] Define not implemented:', self)
 
   def comp(self, scope):
     log(self, level = 'deepDebug')
     text = self.compComment()
 
-    self.define(scope)
+    scope.defVar(self)
     var = scope.findVar(self.name)
 
-    if isinstance(self.value, IntrinsicExpr): # TODO: Not all types
+    if not isinstance(self.value, EmptyExpr):
       value = self.value.comp(scope)
-      hack = Expr.construct(('var', self.name)) # TODO
-      text += var.set(value, hack, self.value, scope)
-    elif not isinstance(self.value, EmptyExpr):
-      error('[DefExpr.comp] Not yet supported:', scope = scope, expr = self) # TODO: setExpr 
+
+      text += self.value.text
+      text += var.set(value)
 
     self.text = text
-    return self.text
+    return var
 
 #************************************************************
 #* ParamExpr ************************************************
@@ -230,7 +238,7 @@ class ParamExpr(Expr):
       text += var.set(value, self, self.value, scope, asArg = True)
     
     self.text = text
-    return self.text
+    return var
 
 #************************************************************
 #* VarExpr **************************************************
@@ -246,7 +254,7 @@ class VarExpr(Expr):
 
   def comp(self, scope):
     log(self, level = 'deepDebug')
-    return self.find(scope) # NOTE: Special within comp, doesn't return any text
+    return self.find(scope)
 
   def find(self, scope):
     var = scope.findVar(self.name)
@@ -257,7 +265,7 @@ class VarExpr(Expr):
 #************************************************************
 #* RefExpr **************************************************
 # (ref, Expr expr)
-# Returns a pointer to whatever is returned by expr (only variables for now)
+# Returns a pointer to whatever is returned by expr
 
 class RefExpr(Expr):
   def __init__(self, expr):
@@ -268,7 +276,11 @@ class RefExpr(Expr):
 
   def comp(self, scope):
     log(self, level = 'deepDebug')
+
     var = self.expr.comp(scope)
+    if self.expr.text != '':
+      self.text = self.compComment() + self.expr.text
+
     return var.pointer()
 
 #************************************************************
@@ -299,7 +311,6 @@ class DerefExpr(Expr):
 #* SetExpr **************************************************
 # (set, Expr into, Expr value)
 # Sets value into "into"
-# NOTE: For now into should be variable
 
 class SetExpr(Expr):
   def __init__(self, expr):
@@ -314,14 +325,17 @@ class SetExpr(Expr):
     log(self, level = 'deepDebug')
     text = self.compComment()
 
-    # TODO: Does the order matter?
+    # TODO: Does the order matter? Yes, and I should decide an order for each expression
     A = self.A.comp(scope) 
+    text += self.A
+
     B = self.B.comp(scope)
+    text += self.B
 
     text += A.set(B, self.A, self.B, scope)
     
     self.text = text
-    return self.text
+    return A
 
 #************************************************************
 #* CallExpr *************************************************
@@ -344,12 +358,11 @@ class CallExpr(Expr):
     log(self, level = 'deepDebug')
     text = self.compComment()
   
-    hack = Expr.construct(('fun', self.name, '', ())) 
-    fun = scope.findFun(hack) # TODO: Use signature
+    fun = scope.findFun(self.name)
 
     sibling = scope.sibling()
 
-    # TODO: Templated types? Should've been compiled
+    # TODO: Templated types? Should be compiled
 
     # Pass args
     if len(self.args) > len(fun.params):
@@ -363,15 +376,16 @@ class CallExpr(Expr):
         var = param.define(sibling)
         value = arg.comp(scope)
 
+        text += arg.text
         text += var.set(value, param, arg, scope, asArg = True)
       else:
         text += param.comp(sibling)
 
-    text += f'  call {fun.name}\n'
+    text += f'  call {fun.name}\n' # TODO: Call C functions
     text += f'  add rsp, {len(fun.params) * 8}\n' # Restore the stack # TODO: Depends on the size of the params
     
     self.text = text
-    return self.text
+    return Var('return', 'rax', fun.type) # TODO: More than one return
 
 #************************************************************
 #* ReturnExpr ***********************************************
@@ -388,23 +402,21 @@ class ReturnExpr(Expr):
   def comp(self, scope):
     text = self.compComment()
 
-    res = self.expr.comp(scope)
-    if isinstance(self.expr, VarExpr):
-      text += f'  mov rax, [{res.reference}]\n'
-    elif isinstance(self.expr, RefExpr):
-      text += f'  lea rax, [{res.reference}]\n'
-    # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
-    # elif isinstance(self.expr, ): # TODO: Other types
-    elif isinstance(self.expr, ArithmExpr):
-      text += res[0]
-      text += f'  mov rax, {res[1]}\n'
+    if isinstance(self.expr, EmptyExpr):
+      pass # TODO: Check current return type?
     else:
-      text += f'  mov rax, {res}\n'
+      res = self.expr.comp(scope)
+      text += self.expr.text
+
+      if isinstance(self.value, EmptyExpr):
+        log('[ReturnExpr] Empty return', level = 'warning') # TODO: Check it's valid
+      else:
+        text += res.putValue('rax')
 
     text += '  jmp .__ret\n'
 
     self.text = text
-    return self.text
+    return None # TODO: What should this return?
 
 #************************************************************
 #* IfExpr ***************************************************
@@ -425,23 +437,21 @@ class IfExpr(Expr):
     
     child = scope.child()
 
-    res = self.cond.comp(child) # TODO: Repeated code with ReturnExpr
-    if isinstance(self.cond, VarExpr):
-      text += f'  mov rax, [{res.reference}]\n'
-    # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
-    # elif isinstance(self.cond, ): # TODO: Other types
-    elif isinstance(self.cond, ArithmExpr):
-      text += res[0]
-      text += f'  mov rax, {res[1]}\n'
+    # TODO: Repeated code with ReturnExpr
+    res = self.cond.comp(child) 
+    text += self.cond.text
+
+    reg = 'rax' # TODO: Alloc register
+    if isinstance(self.value, EmptyExpr):
+      log('[ReturnExpr] Empty return', level = 'warning') # TODO: Check it's valid
     else:
-      text += f'  mov rax, {res}\n'
+      text += res.putValue(reg)
 
     trueLabel = child.getLabel('.__true')
     falseLabel = child.getLabel('.__else')
     endLabel = child.getLabel('.__end')
 
-    false = Expr.construct(('bool', False)).comp(scope)
-    text += f'  cmp rax, {false}\n' 
+    text += f'  cmp rax, {FALSE.comp(scope)}\n' # TODO: FALSE.comp? Clean this!
     text += f'  je {falseLabel}\n'
 
     text += f'{trueLabel}:\n'
@@ -458,7 +468,7 @@ class IfExpr(Expr):
     text += f'{endLabel}:\n'
 
     self.text = text
-    return self.text
+    return None # TODO: What should this return? 
 
 #************************************************************
 #* ArithmExpr ***********************************************
@@ -484,60 +494,47 @@ class ArithmExpr(Expr):
     log(self, level = 'deepDebug')
     text = self.compComment()
     
-    x = self.fooComp(self.x, scope)
-    y = self.fooComp(self.y, scope)
+    x = self.x.comp(scope)
+    text += self.x.text
 
-    # TODO: Check they have the same type
+    y = self.y.comp(scope)
+    text += self.y.text
+
+    if x.type != y.type:
+      error('[ArithmExpr] Wrong types', self)
+
     reg = 'rax' # TODO: Alloc register
     text += self.compAction(x, y, reg, scope)
 
     # TODO: Free register?
     self.text = text
-    return self.text, reg
+    return Var('', 'rax', x.type) # TODO: Place?
 
   def compAction(self, x, y, reg, scope):
-    text = ''
+    text = x.putValue(reg)
 
     match self.action:
       case '+':
-        text += f'  mov {reg}, {x}\n'
         text += f'  add {reg}, {y}\n'
       case '-':
-        text += f'  mov {reg}, {x}\n'
         text += f'  sub {reg}, {y}\n'
       case '*':
-        text += f'  mov {reg}, {x}\n'
         text += f'  imul {reg}, {y}\n' # TODO: unsigned
         text += f'  mov {reg}, rax\n' # TODO: High part
       case '/':
-        text += f'  mov {reg}, {x}\n'
         text += f'  idiv qword {y}\n' # TODO: unsigned # TODO: qword depends on size
         text += f'  mov {reg}, rax\n'
       case '%':
-        text += f'  mov {reg}, {x}\n'
         text += f'  idiv qword {y}\n' # TODO: unsigned # TODO: qword depends on size
         text += f'  mov {reg}, rdx\n'
       case '&&':
-        text += f'  mov {reg}, {x}\n'
         text += f'  and {reg}, {y}\n'
       case '||':
-        text += f'  mov {reg}, {x}\n'
         text += f'  or {reg}, {y}\n'
       case '!':
-        text += f'  mov {reg}, {x}\n'
         text += f'  not {reg}\n'
 
     return text
-
-  def fooComp(self, expr, scope):
-    x = expr.comp(scope)
-    if isinstance(expr, VarExpr) or isinstance(expr, DerefExpr):
-      return f'[{x.reference}]'
-    elif isinstance(expr, IntrinsicExpr) or (isinstance(expr, EmptyExpr) and expr == self.y and self.action == '!'):
-      return x
-    # elif isinstance(expr, ): # TODO: Other types
-    else:
-      error('[ArithmExpr] Type not supported', x, expr, scope = scope, expr = self)
 
 #************************************************************
 #* IntrinsicExpr ********************************************
@@ -553,46 +550,17 @@ class IntrinsicExpr(Expr):
     return f'({self.type}, {self.value})'
 
   def define(self):
-    # NOTE: Only for compilation
+    value = int(self.value) if self.type == 'bool' else self.value
+    size = 'dq' # Default to int64 or pointer
     match self.type:
-      case 'bool': return f'db {int(self.value)}'
-      case 'char' | 'int8': return f'db {self.value}'
-      case 'int16': return f'dw {self.value}'
-      case 'int32': return f'dd {self.value}'
-      case 'int64': return f'dq {self.value}'
-      case _: return f'dq {self.value}' # Pointer
+      case 'bool' | 'char' | 'int8': size = 'db'
+      case 'int16': size = 'dw'
+      case 'int32': size = 'dd'
+    return f'{size} {value}'
 
   def comp(self, scope):
-    match self.type:
-      case 'bool': return int(self.value)
-      case _: return self.value
-
-#************************************************************
-#* DebugExpr ************************************************
-# (debug, string level, (python args...), (Expr exprs...))
-# Used to debug the interpreter / compiler
-
-class DebugExpr(Expr):
-  def __init__(self, expr):
-    super().__init__(expr)
-    self.level = expr[1]
-    self.args = expr[2]
-    self.exprs = [Expr.construct(subexpr) for subexpr in expr[3]]
-  def __repr__(self):
-    args = ', '.join([str(arg) for arg in self.args])
-    if args != '':
-      args = ', ' + args
-    return f'(debug, {tuple(self.exprs)}{args})'
-
-  def define(self, scope):
-    self.debug(scope)
-  def comp(self, scope):
-    # self.debug(scope) # TODO
-    return ''
-
-  def debug(self, scope):
-    results = [expr.exec(scope) for expr in self.exprs] # TODO
-    debugStep(*self.args, *results, level = self.level)
+    value = int(self.value) if self.type == 'bool' else self.value
+    return Var('', f'{value}', self.type) # TODO: Place # TODO: Reference?
 
 #26, number of lines for the GenericExpr
 #************************************************************
@@ -614,15 +582,15 @@ class GenericExpr(Expr):
     text = self.compComment()
     
     self.text = text
-    return self.text
+    return None 
 
 #************************************************************
 #* Utils ****************************************************
 
-def getExprType(t):
-  if t.startswith('*'): # Pointer
-    return IntrinsicExpr
+TRUE = Expr.construct(('bool', True))
+FALSE = Expr.construct(('bool', False))
 
+def getExprType(t):
   match t:
     case 'file': return FileExpr
 
@@ -643,5 +611,7 @@ def getExprType(t):
     case '+' | '-' | '*' | '/' | '%' | '&&' | '||' | '!': return ArithmExpr
     case 'char' | 'int8' | 'int16' | 'int32' | 'int64' | 'bool': return IntrinsicExpr
 
-    case 'debug': return DebugExpr
-  return Expr
+    case _:
+      if t.startswith('*'): # Pointer
+        return IntrinsicExpr
+      return Expr

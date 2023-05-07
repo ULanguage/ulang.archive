@@ -28,14 +28,22 @@ if __name__ == '__main__':
     ('def', 'zero', 'char', ('char', 48)), # Character '0'
     ('def', 'one', 'char', ('char', 49)), # Character '1'
 
-    ('fun', 'main', 'int', (),
+    ('fun', 'inc', 'int64', (('param', 'value', 'int64', ('int64', 0)),),
+      ('return', ('+', ('var', 'value'), ('int64', 1))),
+    ),
+
+    ('fun', 'main', 'int64', (),
       ('set', ('var', 'message'), ('ref', ('var', '_message0'))),
 
       ('def', 'foo', '*char', ('*char', 0)),
       ('set', ('var', 'foo'), ('*char', 1)),
       ('set', ('var', 'foo'), ('var', 'message')),
-      ('set', ('var', 'foo'), ('+', ('var', 'message'), ('*char', 2))),
-      # ('set', ('deref', ('var', 'foo')), ('char', 5)),
+      # ('set', ('var', 'foo'), ('+', ('var', 'message'), ('*char', 2))),
+      ('set', ('deref', ('var', 'foo')), ('char', 5)),
+
+      ('def', 'bar', 'int64', ()),
+      ('set', ('var', 'bar'), ('call', 'inc')),
+      ('set', ('var', 'bar'), ('call', 'inc', ('var', 'bar'))),
     ),
   ))
 
