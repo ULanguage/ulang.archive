@@ -2,7 +2,6 @@ import sys
 import argparse
 
 dfltO = 'main.asm'
-dfltComp = False
 dfltLogMask = 'user,error'
 dfltDebugMask = ''
 
@@ -15,10 +14,6 @@ def parseArgs():
     formatter_class = argparse.RawTextHelpFormatter,
   )
 
-  parser.add_argument(
-    '--compile', default = dfltComp, action = 'store_true',
-    help = f'Should compile the file (default: "{dfltComp}")',
-  )
   parser.add_argument(
     '-o', default = dfltO,
     help = f'Output path for the compiled file (default: "{dfltO}")',

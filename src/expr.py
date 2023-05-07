@@ -14,10 +14,6 @@ class Expr:
     # U: Used to define this expression in the current scope
     log('[define] TODO', self, level = 'error')
     return None
-  def exec(self, scope):
-    # U: Used to execute this expression in the interpreter
-    log('[exec] TODO', self, level = 'error')
-    return None
   def comp(self, scope):
     # U: Used to compile this expression
     log('[comp] TODO', self, level = 'error')
@@ -61,26 +57,6 @@ class FileExpr(Expr):
   def __repr__(self):
     return f'(file, {self.path}, ({len(self.exprs)})...)'
 
-  def exec(self, scope, isMain = False):
-    log(self, level = 'deepDebug')
-
-    # Define vars, types, funs # TODO: Anything else? options, libname, import
-    for expr in self.exprs:
-      # TODO: Check types?
-      expr.define(scope)
-
-    # Instance vars # TODO: Loops between them: A = B; B = C; C = A;
-    for expr in self.exprs:
-      if isinstance(expr, DefExpr):
-        expr.exec(scope)
-
-    # Begin executing main function
-    if isMain:
-      main = scope.findFun('main')
-      return main.exec(scope.child(), isMain = True)
-
-    return None
-
   def comp(self, scope, isMain = False):
     log(self, level = 'deepDebug')
     self.data = ''
@@ -118,21 +94,6 @@ class FunExpr(Expr):
 
   def define(self, scope):
     scope.defFun(self)
-
-  def exec(self, scope, isMain = False):
-    log(self, level = 'deepDebug')
-    # TODO: JIT?
-
-    # Execute expressions in order
-    for expr in self.exprs:
-      if isinstance(expr, DefExpr): # TODO: Check other types? Like functions
-        expr.define(scope)
-
-      expr.exec(scope)
-      if scope.returned:
-        break
-  
-    return scope.ret
 
   def comp(self, scope, isMain = False):
     log(self, level = 'deepDebug')
@@ -224,18 +185,6 @@ class DefExpr(Expr):
       return text + f'{self.value.define()}\n'
     # else: pass # TODO: Other types, queue for main to comp it
 
-  def exec(self, scope):
-    log(self, level = 'deepDebug')
-
-    var = scope.findVar(self.name)
-    if not isinstance(self.value, EmptyExpr):
-      value = self.value.exec(scope)
-
-      hack = Expr.construct(('var', self.name)) # TODO
-      var.set(value, hack, self.value, scope)
-
-    return var
-
   def comp(self, scope):
     log(self, level = 'deepDebug')
     text = self.compComment()
@@ -270,20 +219,6 @@ class ParamExpr(Expr):
   def define(self, scope):
     return scope.defVar(self, local = True)
 
-  def exec(self, scope):
-    log(self, level = 'deepDebug')
-
-    var = scope.findVar(self.name, localOnly = True)
-    if var is None:
-      var = self.define(scope)
-      value = self.value.exec(scope)
-      var.set(value, self, self.value, scope)
-
-    if var.value is None:
-      error('[ParamExpr.exec]', scope = scope, expr = self)
-
-    return var
-
   def comp(self, scope):
     log(self, level = 'deepDebug')
     text = ''
@@ -309,10 +244,6 @@ class VarExpr(Expr):
   def __repr__(self):
     return f'(var, {self.name})'
 
-  def exec(self, scope):
-    log(self, level = 'deepDebug')
-    return self.find(scope)
-
   def comp(self, scope):
     log(self, level = 'deepDebug')
     return self.find(scope) # NOTE: Special within comp, doesn't return any text
@@ -335,11 +266,6 @@ class RefExpr(Expr):
   def __repr__(self):
     return f'(ref, {self.expr})'
 
-  def exec(self, scope):
-    log(self, level = 'deepDebug')
-    var = self.expr.exec(scope)
-    return var.pointer()
-
   def comp(self, scope):
     log(self, level = 'deepDebug')
     var = self.expr.comp(scope)
@@ -356,15 +282,6 @@ class DerefExpr(Expr):
     self.expr = Expr.construct(expr[1])
   def __repr__(self):
     return f'(deref, {self.expr})'
-
-  def exec(self, scope):
-    log(self, level = 'deepDebug')
-
-    var = self.expr.exec(scope)
-    if not var.isPointer():
-      error('[DerefExpr.exec] Var is not a pointer:', var, scope = scope, expr = self)
-
-    return var.value
 
   def comp(self, scope):
     log(self, level = 'deepDebug')
@@ -392,15 +309,6 @@ class SetExpr(Expr):
 
   def __repr__(self):
     return f'(set, {self.A}, {self.B})'
-
-  def exec(self, scope):
-    log(self, level = 'deepDebug')
-
-    A = self.A.exec(scope)
-    B = self.B.exec(scope)
-    A.set(B, self.A, self.B, scope)
-
-    return A
 
   def comp(self, scope):
     log(self, level = 'deepDebug')
@@ -431,34 +339,6 @@ class CallExpr(Expr):
       args = ', ' + args
 
     return f'(call, {self.name}{args})' 
-
-  def exec(self, scope):
-    log(self, level = 'deepDebug')
-
-    hack = Expr.construct(('fun', self.name, '', ())) 
-    fun = scope.findFun(hack) # TODO: Use signature
-
-    sibling = scope.sibling()
-
-    # TODO: Templated types
-
-    # Pass args
-    if len(self.args) > len(fun.params):
-      error('[CallExpr.exec] Too many args:', scope = scope, expr = self)
-
-    # TODO: Named args
-    for idx, arg in enumerate(self.args):
-      param = fun.params[idx]
-
-      var = param.define(sibling)
-      value = arg.exec(scope)
-      var.set(value, param, arg, scope)
-
-    # Make sure all params are defined
-    for param in fun.params:
-      param.exec(sibling)
-
-    return fun.exec(sibling)
 
   def comp(self, scope):
     log(self, level = 'deepDebug')
@@ -505,18 +385,6 @@ class ReturnExpr(Expr):
   def __repr__(self):
     return f'(return, {self.expr})'
 
-  def exec(self, scope):
-    res = self.expr.exec(scope)
-    if isinstance(self.expr, VarExpr): 
-      res = res.value
-    elif isinstance(self.expr, IntrinsicExpr):
-      res = self.expr
-    # elif isinstance(self.value, EmptyExpr): # TODO: URGENT
-    # elif isinstance(self.expr, ): # TODO: Other types
-
-    scope.ret = res
-    scope.returned = True
-
   def comp(self, scope):
     text = self.compComment()
 
@@ -550,29 +418,6 @@ class IfExpr(Expr):
     self.falsePath = [Expr.construct(subexpr) for subexpr in expr[3]]
   def __repr__(self):
     return f'(if, {self.cond}, ({len(self.truePath)})..., ({len(self.falsePath)}...))'
-
-  def exec(self, scope):
-    log(self, level = 'deepDebug')
-
-    child = scope.child()
-
-    cond = self.cond.exec(child)
-    path = False
-    if isinstance(self.cond, VarExpr):
-      path = bool(cond.value)
-    else:
-      path = bool(cond)
-
-    for expr in (self.truePath if path else self.falsePath):
-      expr.exec(child)
-      if child.returned or child.broke:
-        break
-
-    if child.returned:
-      scope.ret = child.ret
-      scope.returned = True
-
-    return path
 
   def comp(self, scope):
     log(self, level = 'deepDebug')
@@ -635,16 +480,6 @@ class ArithmExpr(Expr):
   def __repr__(self):
     return f'({self.action}, {self.x}, {self.y})'
 
-  def exec(self, scope):
-    log(self, level = 'deepDebug')
-
-    x = self.fooExec(self.x, scope)
-    y = self.fooExec(self.y, scope)
-
-    # TODO: Check they have the same type
-
-    return self.execAction(x, y, scope)
-
   def comp(self, scope):
     log(self, level = 'deepDebug')
     text = self.compComment()
@@ -659,18 +494,6 @@ class ArithmExpr(Expr):
     # TODO: Free register?
     self.text = text
     return self.text, reg
-
-  def execAction(self, x, y, scope):
-    # TODO: Return with type
-    match self.action:
-      case '+': return x + y
-      case '-': return x - y
-      case '*': return x * y
-      case '/': return x // y
-      case '%': return x % y
-      case '&&': return x and y
-      case '||': return x or y
-      case '!': return not x
 
   def compAction(self, x, y, reg, scope):
     text = ''
@@ -706,16 +529,6 @@ class ArithmExpr(Expr):
 
     return text
 
-  def fooExec(self, expr, scope):
-    x = expr.exec(scope)
-    if isinstance(expr, VarExpr) or isinstance(expr, DerefExpr):
-      return x.value
-    elif isinstance(expr, IntrinsicExpr) or (isinstance(expr, EmptyExpr) and expr == self.y and self.action == '!'):
-      return x
-    # TODO: Other types
-    else:
-      error('[ArithmExpr] Type not supported', x, expr, scope = scope, expr = self)
-
   def fooComp(self, expr, scope):
     x = expr.comp(scope)
     if isinstance(expr, VarExpr) or isinstance(expr, DerefExpr):
@@ -748,9 +561,6 @@ class IntrinsicExpr(Expr):
       case 'int32': return f'dd {self.value}'
       case 'int64': return f'dq {self.value}'
 
-  def exec(self, scope):
-    return self.value
-
   def comp(self, scope):
     match self.type:
       case 'bool': return int(self.value)
@@ -775,14 +585,12 @@ class DebugExpr(Expr):
 
   def define(self, scope):
     self.debug(scope)
-  def exec(self, scope):
-    self.debug(scope)
   def comp(self, scope):
     # self.debug(scope) # TODO
     return ''
 
   def debug(self, scope):
-    results = [expr.exec(scope) for expr in self.exprs]
+    results = [expr.exec(scope) for expr in self.exprs] # TODO
     debugStep(*self.args, *results, level = self.level)
 
 #26, number of lines for the GenericExpr
@@ -799,11 +607,6 @@ class GenericExpr(Expr):
 
   # def define(self, scope):
     # pass
-
-  def exec(self, scope):
-    log(self, level = 'deepDebug')
-
-    return None
 
   def comp(self, scope):
     log(self, level = 'deepDebug')

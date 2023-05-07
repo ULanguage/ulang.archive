@@ -1,5 +1,4 @@
 from compiler import Compile
-from interpreter import Execute
 from expr import Expr
 
 from debug import setDebug, setLogMask
@@ -24,7 +23,4 @@ if __name__ == '__main__':
     ),
   ))
 
-  if args.compile:
-    Compile(main, args.o)
-  else:
-    Execute(main)
+  Compile(main, args.o)

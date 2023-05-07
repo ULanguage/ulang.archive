@@ -1,29 +1,6 @@
 from expr import *
+from var import Var
 from debug import log, error
-
-class Var:
-  def __init__(self, _type):
-    self.type = _type
-    self.isPointer = _type.startswith('*')
-  def __repr__(self):
-    return f'var<{self.type}>'
-
-  def checkTypes(self, newValue, selfExpr, valExpr, scope):
-    # TODO: Clean
-    theirType = None
-    if isinstance(newValue, Var):
-      theirType = newValue.type
-    elif isinstance(valExpr, IntrinsicExpr):
-      theirType = valExpr.type
-    elif isinstance(valExpr, CallExpr):
-      fun = scope.findFun(valExpr.name)
-      theirType = fun.type
-    # elif isinstance(valExpr, ): # TODO: Other types of expressions
-    else:
-      error('[checkTypes] Unhandled expression:', selfExpr, valExpr, scope = scope)
-
-    if self.type != theirType:
-      error('[checkTypes] Wrong types:', selfExpr, valExpr, scope = scope)
 
 class Scope:
   def __init__(self, parent = None):
@@ -37,14 +14,8 @@ class Scope:
     self.broke = False
 
     self.labels = dict()
-
   def __repr__(self):
     return f'Scope<{not self.parent is None}, {list(self.funs.keys())}, {list(self.vars.keys())}>'
-
-  def child(self):
-    return type(self)(parent = self)
-  def sibling(self):
-    return type(self)(parent = self.parent)
 
   def defFun(self, fun):
     if not self.findFun(fun.name) is None:
@@ -80,3 +51,28 @@ class Scope:
     count = self.labels.get(label, 0)
     self.labels[label] = count + 1
     return f'{label}_{count}'
+
+  def child(self):
+    return type(self)(parent = self)
+  def sibling(self):
+    return type(self)(parent = self.parent)
+
+  def newVar(self, _def):
+    place = 'def' if isinstance(_def, DefExpr) else 'param'
+
+    reference = ''
+    offset = len(self.varsWithPlace(place)) * 8 # TODO: 8 depends on each var's size
+    if place == 'def':
+      reference = f'rbp - {offset + 8}' # Below rbp
+    elif place == 'param':
+      reference = f'rbp + {offset + 16}' # Above rbp and rip
+
+    if self.parent is None and isinstance(_def, DefExpr):
+      place = 'global'
+      reference = f'rel {_def.name}'
+
+    return Var(place, reference, _def.type)
+
+  def varsWithPlace(self, place):
+    return [var for _, var in self.vars.items() if var.place == place]
+
