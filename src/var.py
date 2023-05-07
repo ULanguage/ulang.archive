@@ -33,11 +33,14 @@ class Var:
       text += f'  mov {reg}, {newValue}\n'
 
     size = ''
-    match self.type:
-      case 'bool' | 'char' | 'int8': size = 'byte'
-      case 'int16': size = 'word'
-      case 'int32': size = 'dword'
-      case 'int64': size = 'qword'
+    if self.isPointer:
+      size = 'qword'
+    else:
+      match self.type:
+        case 'bool' | 'char' | 'int8': size = 'byte'
+        case 'int16': size = 'word'
+        case 'int32': size = 'dword'
+        case 'int64': size = 'qword'
 
     if asArg:
       text += f'  push {size} {reg}\n'

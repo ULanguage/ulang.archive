@@ -287,7 +287,7 @@ class DerefExpr(Expr):
     log(self, level = 'deepDebug')
 
     var = self.expr.comp(scope)
-    if not var.isPointer():
+    if not var.isPointer:
       error('[DerefExpr.comp] Var is not a pointer:', var, scope = scope, expr = self)
 
     res = deepcopy(var)
@@ -560,6 +560,7 @@ class IntrinsicExpr(Expr):
       case 'int16': return f'dw {self.value}'
       case 'int32': return f'dd {self.value}'
       case 'int64': return f'dq {self.value}'
+      case _: return f'dq {self.value}' # Pointer
 
   def comp(self, scope):
     match self.type:
@@ -619,6 +620,9 @@ class GenericExpr(Expr):
 #* Utils ****************************************************
 
 def getExprType(t):
+  if t.startswith('*'): # Pointer
+    return IntrinsicExpr
+
   match t:
     case 'file': return FileExpr
 
