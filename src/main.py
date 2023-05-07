@@ -39,7 +39,8 @@ if __name__ == '__main__':
       ('set', ('var', 'foo'), ('*char', 1)),
       ('set', ('var', 'foo'), ('var', 'message')),
       ('set', ('var', 'foo'), ('+', ('var', 'message'), ('*char', 2))),
-      ('set', ('deref', ('var', 'foo')), ('char', 5)),
+      ('set', ('deref', ('+', ('var', 'message'), ('*char', 2))), ('char', 89)),
+      ('set', ('deref', ('var', 'foo')), ('char', 90)),
 
       ('def', 'bar', 'int64', ()),
       ('set', ('var', 'bar'), ('call', 'increment')),

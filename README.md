@@ -5,8 +5,8 @@
   * Implementing what is actually needed to compile itself
     - [X] Boolean logic
     - [X] int8 = char, int16, int32, int64
-    - [ ] Basic array manipulation
-    - [ ] Basic string manipulation
+    - [X] Basic array manipulation
+    - [X] Basic string manipulation
     - [ ] Export functions and import other .u files
     - [ ] Import and call C functions
     - [ ] For loops

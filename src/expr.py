@@ -298,6 +298,8 @@ class DerefExpr(Expr):
     log(self, level = 'deepDebug')
 
     var = self.expr.comp(scope)
+    if self.expr.text != '':
+      self.text = self.compComment() + self.expr.text
     return var.deref()
 
 #************************************************************
