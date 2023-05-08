@@ -10,7 +10,7 @@
     - [X] Basic register management
     - [X] Import and call C functions
     - [X] ~~For~~ While loops
-    - [ ] Main arguments
+    - [X] Main arguments
     - [ ] Data structures
     - [ ] Export functions and import other .u files
   * Removing what isn't needed (but is already implemented or halfway)

@@ -82,10 +82,9 @@ class FileExpr(Expr):
         error('[FileExpr] Comp not yet supported', self)
 
     # Compile functions # NOTE: The order doesn't matter
-    main = scope.findFun('main')
     for expr in self.exprs:
       if isinstance(expr, FunExpr):
-        expr.comp(scope.child(), isMain = expr == main)
+        expr.comp(scope.child())
         text += expr.text
 
     self.text = imports + ('\n' if imports != '' else '') + exports + ('\n' if exports != '' else '') + data + text
@@ -130,15 +129,24 @@ class FunExpr(Expr):
     scope.defFun(self)
     return f'global {self.name}\n' # TODO: Selective exports
 
-  def comp(self, scope, isMain = False):
+  def comp(self, scope):
     log(self, level = 'deepDebug')
+    isMain = self.name == 'main'
     s = ''
 
     # TODO: If isMain instance global vars with (default) values
 
     # NOTE: Assumes params exist
-    for param in self.params:
-      param.define(scope)
+    if isMain:
+      # Define argc and argv... TODO: Hackish
+      argc = scope.allocReg('rdi', 'int64')
+      argv = scope.allocReg('rsi', '**char')
+
+      scope.vars['argc'] = argc
+      scope.vars['argv'] = argv
+    else:
+      for param in self.params:
+        param.define(scope)
 
     # Compile expressions in order
     for expr in self.exprs:
@@ -477,10 +485,7 @@ class ReturnExpr(Expr):
     if isinstance(self.expr, EmptyExpr):
       pass # TODO: Check current return type?
     else:
-      rax = scope.allocReg('rax')
       res = self.expr.comp(scope)
-
-      rax = Var(rax.place, rax.reference, res.type) # Replace rax's type
 
       # TODO: Check current return type and res' type
 
@@ -488,10 +493,12 @@ class ReturnExpr(Expr):
 
       if isinstance(self.expr, EmptyExpr):
         log('[ReturnExpr] Empty return', level = 'warning') # TODO: Check it's valid
+      elif isinstance(self.expr, CallExpr):
+        rax = res
       else:
+        rax = scope.allocReg('rax', _type = res.type)
         text += res.putInto(rax, scope)
-
-      scope.freeReg(res)
+        scope.freeReg(res)
 
     text += '  jmp .__ret\n'
 
@@ -513,6 +520,10 @@ class IfExpr(Expr):
 
   def comp(self, scope):
     log(self, level = 'deepDebug')
+
+    if isinstance(self.cond, EmptyExpr):
+      error('[IfExpr] Empty condition') # TODO: Check it's valid
+
     text = self.compComment()
     
     child = scope.child()
@@ -521,18 +532,15 @@ class IfExpr(Expr):
     res = self.cond.comp(child) 
     text += self.cond.text
 
-    reg = child.allocReg()
-    if isinstance(self.value, EmptyExpr):
-      log('[ReturnExpr] Empty return', level = 'warning') # TODO: Check it's valid
-    else:
-      text += res.putInto(Var('reg', reg, res.type), scope)
-      child.freeReg(res)
+    reg = child.allocReg(_type = res.type)
+    text += res.putInto(reg, child)
+    child.freeReg(res)
 
     trueLabel = child.getLabel('.__true')
     falseLabel = child.getLabel('.__else')
     endLabel = child.getLabel('.__end')
 
-    text += f'  cmp {reg}, {FALSE.comp(scope)}\n' # TODO: FALSE.comp? Clean this!
+    text += f'  cmp {reg.value}, {FALSE.comp(scope).value}\n' # TODO: FALSE.comp? Clean this!
     text += f'  je {falseLabel}\n'
     
     child.freeReg(reg)
@@ -540,13 +548,17 @@ class IfExpr(Expr):
     text += f'{trueLabel}:\n'
 
     for expr in self.truePath:
-      text += expr.comp(child)
+      res = expr.comp(child)
+      child.freeReg(res)
+      text += expr.text
 
     text += f'  jmp {endLabel}\n'
     text += f'{falseLabel}:\n'
 
     for expr in self.falsePath:
-      text += expr.comp(child)
+      res = expr.comp(child)
+      child.freeReg(res)
+      text += expr.text
 
     text += f'{endLabel}:\n'
 
@@ -636,8 +648,8 @@ class ArithmExpr(Expr):
     y = self.y.comp(scope)
     text += self.y.text
 
-    if x.type != y.type:
-      error('[ArithmExpr] Wrong types', self)
+    # if x.type != y.type: # TODO:
+      # error('[ArithmExpr] Wrong types', self)
 
     regX = scope.allocReg()
     regX = Var(regX.place, regX.reference, x.type)
