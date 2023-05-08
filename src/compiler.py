@@ -1,3 +1,5 @@
+import subprocess
+
 from scope import Scope
 from debug import log, error
 

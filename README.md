@@ -8,11 +8,11 @@
     - [X] Basic array manipulation
     - [X] Basic string manipulation
     - [X] Basic register management
-    - [ ] Export functions and import other .u files
-    - [ ] Import and call C functions
+    - [X] Import and call C functions
     - [ ] For loops
-    - [ ] Data structures
     - [ ] Main arguments
+    - [ ] Data structures
+    - [ ] Export functions and import other .u files
   * Removing what isn't needed (but is already implemented or halfway)
     - [X] Variable types
     - [X] Calling functions based on more than name
@@ -23,6 +23,7 @@
 - [ ] Extreme future:
   1. More features:
     * Inline assembly (replace libc?)
+    * Call C functions with more than 6 args
     * Better debug during exection
     * Better management of registers
     * Casting variables (convert intrinsic)

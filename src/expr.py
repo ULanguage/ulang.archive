@@ -62,16 +62,19 @@ class FileExpr(Expr):
 
   def comp(self, scope, isMain = False):
     log(self, level = 'deepDebug')
+    imports = ''
     exports = ''
     data = 'section .data\n'
     # TODO: .rodata
     text = '\nsection .text\n'
 
-    # Define vars, funs # TODO: Anything else? options, libname, import, types
+    # Define vars, funs, imports # TODO: Anything else? options, libname, types
     for expr in self.exprs:
       # TODO: Check types?
       _def = expr.define(scope)
-      if isinstance(expr, FunExpr):
+      if isinstance(expr, ImportExpr):
+        imports += _def
+      elif isinstance(expr, FunExpr):
         exports += _def
       elif isinstance(expr, DefExpr):
         data += _def
@@ -85,8 +88,28 @@ class FileExpr(Expr):
         expr.comp(scope.child(), isMain = expr == main)
         text += expr.text
 
-    self.text = exports + ('\n' if exports != '' else '') + data + text
+    self.text = imports + ('\n' if imports != '' else '') + exports + ('\n' if exports != '' else '') + data + text
     return self.text
+
+#************************************************************
+#* ImportExpr ***********************************************
+# (cimport, string funName)
+
+class ImportExpr(Expr):
+  def __init__(self, expr):
+    super().__init__(expr)
+    self.name = expr[1]
+    self.type = expr[2]
+    self.params = [Expr.construct(subexpr) for subexpr in expr[3:]]
+  def __repr__(self):
+    params = ', '.join([str(param) for param in self.params])
+    if params != '':
+      params = ', ' + params
+    return f'(cimport, {self.name}, {self.type}{params})'
+
+  def define(self, scope):
+    scope.defFun(self, lang = 'C')
+    return f'extern {self.name}\n'
 
 #************************************************************
 #* FunExpr **************************************************
@@ -356,17 +379,22 @@ class CallExpr(Expr):
 
   def comp(self, scope):
     log(self, level = 'deepDebug')
-    text = self.compComment()
   
-    fun = scope.findFun(self.name)
+    fun, lang = scope.findFun(self.name)
 
+    match lang:
+      case 'U': return self.compU(fun, scope)
+      case 'C': return self.compC(fun, scope)
+
+  def compU(self, fun, scope):
+    text = self.compComment()
     sibling = scope.sibling()
 
     # TODO: Templated types? Should be compiled
 
     # Pass args
     if len(self.args) > len(fun.params):
-      error('[CallExpr.comp] Too many args:', scope = scope, expr = self)
+      error('[CallExpr.compU] Too many args:', scope = scope, expr = self)
 
     for _idx, param in enumerate(reversed(fun.params)): # NOTE: Params are passed on the stack, thus they're reversed
       idx = len(fun.params) - 1 - _idx # Also in reverse
@@ -385,11 +413,50 @@ class CallExpr(Expr):
         text += param.text
         scope.freeReg(res)
 
-    text += f'  call {fun.name}\n' # TODO: Call C functions
+    text += f'  call {fun.name}\n'
     text += f'  add rsp, {len(fun.params) * 8}\n' # Restore the stack # TODO: Depends on the size of the params
     
     self.text = text
     return scope.allocReg('rax', fun.type) # TODO: More than one return
+
+  def compC(self, fun, scope):
+    text = self.compComment()
+    sibling = scope.sibling()
+
+    # Pass args
+    if len(self.args) > len(fun.params):
+      error('[CallExpr.compC] Too many args:', scope = scope, expr = self)
+
+    # TODO: Support more than 6 params (not needed for syscalls)
+    regs = []
+    for reg, param in zip(['rdi', 'rsi', 'rdx', 'rcx', 'r8', 'r9'], fun.params):
+      regs.append(scope.allocReg(reg, param.type))
+
+    for idx, param in enumerate(fun.params):
+      reg = regs[idx]
+      reg = Var(reg.place, reg.reference, param.type) # Replace it's type
+
+      if idx < len(self.args): # This param is provided
+        arg = self.args[idx]
+
+        var = param.define(sibling)
+        value = arg.comp(scope)
+
+        text += arg.text
+        text += value.putInto(reg, scope)
+
+        scope.freeReg(value)
+      else:
+        error('[CallExpr.compC] Not yet supported', self)
+
+    text += f'  call {fun.name} wrt ..plt\n'
+
+    for reg in regs:
+      scope.freeReg(reg)
+    
+    self.text = text
+    return scope.allocReg('rax', fun.type) # TODO: More than one return
+
 
 #************************************************************
 #* ReturnExpr ***********************************************
@@ -590,7 +657,7 @@ class IntrinsicExpr(Expr):
     value = int(self.value) if self.type == 'bool' else self.value
     return Var('intrinsic', f'{value}', self.type) # TODO: Reference?
 
-#26, number of lines for the GenericExpr
+#21, number of lines for the GenericExpr
 #************************************************************
 #* GenericExpr***********************************************
 # ()
@@ -618,6 +685,7 @@ class GenericExpr(Expr):
 def getExprType(t):
   match t:
     case 'file': return FileExpr
+    case 'cimport': return ImportExpr
 
     case 'fun': return FunExpr
     case 'def': return DefExpr

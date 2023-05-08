@@ -18,10 +18,10 @@ class Scope:
   def __repr__(self):
     return f'Scope<{not self.parent is None}, {list(self.funs.keys())}, {list(self.vars.keys())}>'
 
-  def defFun(self, fun):
+  def defFun(self, fun, lang = 'U'):
     if not self.findFun(fun.name) is None:
       error(f'[defFun] A function with the name "{fun.name}" already exists', scope = self, expr = fun)
-    self.funs[fun.name] = fun
+    self.funs[fun.name] = (fun, lang)
 
   def findFun(self, name):
     if name in self.funs:

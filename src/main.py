@@ -11,6 +11,19 @@ if __name__ == '__main__':
   setDebug(args.debugMask.split(','))
 
   main = Expr.construct(('file', 'main.u',
+    ('cimport', 'open', 'int64', ('param', 'filename', '*char', ()), ('param', 'flags', 'int64', ()), ('param', 'mode', 'int64', ())),
+    ('cimport', 'write', 'int64', ('param', 'fd', 'int64', ()), ('param', 'buf', '*char', ()), ('param', 'count', 'int64', ())),
+    ('cimport', 'read', 'int64', ('param', 'fd', 'int64', ()), ('param', 'buf', '*char', ()), ('param', 'count', 'int64', ())),
+
+    ('def', 'fpath', '*char', ('*char', 0)),
+    ('def', '_fpath0', 'char', ('char', 47)), # TODO: Define arrays
+    ('def', '_fpath1', 'char', ('char', 116)),
+    ('def', '_fpath2', 'char', ('char', 109)),
+    ('def', '_fpath3', 'char', ('char', 112)),
+    ('def', '_fpath4', 'char', ('char', 47)),
+    ('def', '_fpath5', 'char', ('char', 120)),
+    ('def', '_fpath6', 'char', ('char', 0)),
+
     ('def', 'message', '*char', ('*char', 0)),
     ('def', '_message0', 'char', ('char', 65)), # TODO: Define arrays
     ('def', '_message1', 'char', ('char', 104)),
@@ -23,28 +36,14 @@ if __name__ == '__main__':
     ('def', '_message8', 'char', ('char', 114)),
     ('def', '_message9', 'char', ('char', 101)),
     ('def', '_message10', 'char', ('char', 33)),
-    ('def', '_message11', 'char', ('char', 0)),
-
-    ('def', 'zero', 'char', ('char', 48)), # Character '0'
-    ('def', 'one', 'char', ('char', 49)), # Character '1'
-
-    ('fun', 'increment', 'int64', (('param', 'value', 'int64', ('int64', 0)),),
-      ('return', ('+', ('var', 'value'), ('int64', 1))),
-    ),
+    ('def', '_message11', 'char', ('char', 10)),
+    ('def', '_message12', 'char', ('char', 0)),
 
     ('fun', 'main', 'int64', (),
       ('set', ('var', 'message'), ('ref', ('var', '_message0'))), # TODO
+      ('set', ('var', 'fpath'), ('ref', ('var', '_fpath0'))), # TODO
 
-      ('def', 'foo', '*char', ('*char', 0)),
-      ('set', ('var', 'foo'), ('*char', 1)),
-      ('set', ('var', 'foo'), ('var', 'message')),
-      ('set', ('var', 'foo'), ('+', ('var', 'message'), ('*char', 2))),
-      ('set', ('deref', ('+', ('var', 'message'), ('*char', 2))), ('char', 89)),
-      ('set', ('deref', ('var', 'foo')), ('char', 90)),
-
-      ('def', 'bar', 'int64', ()),
-      ('set', ('var', 'bar'), ('call', 'increment')),
-      ('set', ('var', 'bar'), ('call', 'increment', ('var', 'bar'))),
+      ('call', 'write', ('int64', 1), ('var', 'message'), ('int64', 12)),
     ),
   ))
 
