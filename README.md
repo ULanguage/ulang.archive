@@ -9,7 +9,7 @@
     - [X] Basic string manipulation
     - [X] Basic register management
     - [X] Import and call C functions
-    - [ ] For loops
+    - [X] ~~For~~ While loops
     - [ ] Main arguments
     - [ ] Data structures
     - [ ] Export functions and import other .u files

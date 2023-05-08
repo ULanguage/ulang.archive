@@ -551,7 +551,60 @@ class IfExpr(Expr):
     text += f'{endLabel}:\n'
 
     self.text = text
-    return None # TODO: What should this return? 
+    return None
+
+#************************************************************
+#* WhileExpr ************************************************
+# (while, Expr cond, Expr exprs...)
+
+class WhileExpr(Expr):
+  def __init__(self, expr):
+    super().__init__(expr)
+    self.cond = Expr.construct(expr[1])
+    self.exprs = [Expr.construct(subexpr) for subexpr in expr[2:]]
+  def __repr__(self):
+    return f'(while, {self.cond}, ({len(self.exprs)})...)'
+
+  def comp(self, scope):
+    log(self, level = 'deepDebug')
+    text = self.compComment()
+    
+    child = scope.child()
+
+    # TODO: Repeated code with ReturnExpr and IfExpr
+
+    condLabel = child.getLabel('.__cond')
+    trueLabel = child.getLabel('.__true')
+    endLabel = child.getLabel('.__end')
+
+    text += f'{condLabel}:\n'
+
+    res = self.cond.comp(child) 
+    text += self.cond.text
+
+    if not isinstance(self.cond, EmptyExpr):
+      reg = child.allocReg(_type = res.type)
+
+      text += res.putInto(reg, scope)
+      child.freeReg(res)
+
+      text += f'  cmp {reg.value}, {FALSE.comp(scope).value}\n' # TODO: FALSE.comp? Clean this!
+      text += f'  je {endLabel}\n'
+    
+    child.freeReg(reg)
+
+    text += f'{trueLabel}:\n'
+
+    for expr in self.exprs:
+      res = expr.comp(child)
+      child.freeReg(res)
+      text += expr.text
+
+    text += f'  jmp {condLabel}\n'
+    text += f'{endLabel}:\n'
+
+    self.text = text
+    return None
 
 #************************************************************
 #* ArithmExpr ***********************************************
@@ -696,6 +749,7 @@ def getExprType(t):
     case 'return': return ReturnExpr
 
     case 'if': return IfExpr
+    case 'while': return WhileExpr
 
     case 'var': return VarExpr
     case 'ref': return RefExpr

@@ -79,7 +79,7 @@ class Scope:
 
   def allocReg(self, force = None, _type = 'int64'):
     if self.parent.parent is not None: # Managed by function scope # TODO: Simplify
-      return self.parent.allocReg(force)
+      return self.parent.allocReg(force, _type)
 
     freeRegs = [reg for reg, free in self.registers.items() if free]
     if len(freeRegs) == 0 or (force is not None and force not in freeRegs):

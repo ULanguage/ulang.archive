@@ -43,6 +43,12 @@ if __name__ == '__main__':
       ('set', ('var', 'message'), ('ref', ('var', '_message0'))), # TODO
       ('set', ('var', 'fpath'), ('ref', ('var', '_fpath0'))), # TODO
 
+      ('def', 'idx', '*char', ('*char', 12)),
+      ('while', ('+', ('var', 'idx'), ('*char', 1)),
+        ('call', 'write', ('int64', 1), ('+', ('var', 'message'), ('var', 'idx')), ('int64', 1)),
+        ('set', ('var', 'idx'), ('-', ('var', 'idx'), ('*char', 1))),
+      ),
+
       ('call', 'write', ('int64', 1), ('var', 'message'), ('int64', 12)),
     ),
   ))
