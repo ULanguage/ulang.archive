@@ -5,7 +5,11 @@ class UParser(lrparsing.Grammar):
     class T(lrparsing.TokenRegistry):
         integer = Token(re='[0-9]+') # TODO: Hex and binary
         ident = Token(re='[A-Za-z_][A-Za-z_0-9]*')
-        
+        eol = Choice(';', '\n', Token(re='\Z'))
+
+        char = Token(re="'.'")
+        string = Token(re='".*"')
+
         int64 = Keyword('int64')
         int32 = Keyword('int32')
         int16 = Keyword('int16')
@@ -13,13 +17,14 @@ class UParser(lrparsing.Grammar):
         char = Keyword('char')
         bool = Keyword('bool')
         _type = Choice(int64, int32, int16, int8, char, bool)
-        pointer = '*' + _type
+        pointer = Some('*') + _type
         type = Choice(_type, pointer)
 
         true = Keyword('true')
         false = Keyword('false')
 
-        eol = Choice(';', '\n', Token(re='\Z'))
+        _import = Keyword('import') | Keyword('cimport')
+        _from = Keyword('from')
 
     expr = Ref('expr')
     line = Ref('line')
@@ -46,19 +51,25 @@ class UParser(lrparsing.Grammar):
     call = atom + '(' + List(expr, ',') + ')'
     ret = Keyword('return') + Opt('(' + List(expr, ',') + ')')
 
+    _import = T._import + T.string
+    _from = T._from + T.string + T._import + '(' + List(T.ident, ',') + ')'
+
     expr = Prio( # TODO: Check order
       atom,
       block,
       '(' + T.type + ')(' + THIS + ')', # Casting
       (T.type | Keyword('var')) + T.ident, # Variable definition: "var a" or "int64 a"
-      THIS << '=' << THIS, # Setting "a = b", also matches for definitions "var a = b" # TODO: +=
+      '++' >> THIS, THIS << '++', 
+      THIS << Tokens('= += -= *= /= %= &= |=') << THIS, # Setting "a = b", also matches for definitions "var a = b" # TODO: *= and others
+      THIS + '[' + THIS + ']', # Array access
       Tokens('& *') >> (T.ident | '(' + THIS + ')'), # Pointer manipulation "&a" or "*a" or "*(123)"
       Tokens("+ - !") >> THIS,
       THIS << Tokens("* / %") << THIS,
-      THIS << Tokens("+ -") << THIS,
-      THIS << Tokens("== !=") << THIS,
+      THIS << Tokens("+ - & |") << THIS,
+      THIS << Tokens("== != < > <= >=") << THIS,
       THIS << Tokens("&& ||") << THIS,
       fun, _if, _while, call, ret,
+      _from, _import,
     )
 
     line = expr + Some(T.eol)
@@ -72,31 +83,23 @@ class UParser(lrparsing.Grammar):
     # WHITESPACE = ' '
 
 parse_tree = UParser.parse('''
-fun times(int64 a, b) int64 {
-  int64 res = a
-  while ((b = b - 1) != 0) {
-    res = res + a
+from "fncntl.h" cimport (open, read, write) // TODO: import open, read, write
+
+fun strlen(*char str, int64 maxLen) int64 {
+  int64 len = 0
+  while *(str++) {
+    len++
   }
-  return (res)
+  return (len) // TODO: return len
 }
 
-fun main(int64 a, b, *int64 c) (int64, bool) {
-  var sum = times(a, b)
-  // sum = (int32)(a + b); *c = sum; *(c + 1) = &sum
-  if sum == 42 {
-    return (sum, true)
-  } elif sum + 1 == 42 || sum - 1 == 42 {
-    return (sum, true)
-  } else {
-    return (sum, false)
+fun main(int32 argc, **char argv) int32 {
+  if argc {
+    var idx = 0
+    while (idx < argc) {
+      write(1, argv[idx], strlen(argv + idx))
+    }
   }
-  /* TODO
-  return (
-    sum,
-    sum == 42
-  )
-  return sum, sum == 42
-  */
 }
 ''')
 print(UParser.repr_parse_tree(parse_tree))
