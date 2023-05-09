@@ -3,18 +3,33 @@ from lrparsing import *
 
 class UParser(lrparsing.Grammar):
     class T(lrparsing.TokenRegistry):
-        integer = Token(re='[0-9]+')
+        integer = Token(re='[0-9]+') # TODO: Hex and binary
         ident = Token(re='[A-Za-z_][A-Za-z_0-9]*')
         
         int64 = Keyword('int64')
         int32 = Keyword('int32')
-        _type = Choice(int64, int32)
+        int16 = Keyword('int16')
+        int8 = Keyword('int8')
+        char = Keyword('char')
+        bool = Keyword('bool')
+        _type = Choice(int64, int32, int16, int8, char, bool)
         pointer = '*' + _type
         type = Choice(_type, pointer)
 
+        true = Keyword('true')
+        false = Keyword('false')
+
+        eol = Choice(';', '\n', Token(re='\Z'))
+
     expr = Ref('expr')
-    atom = T.ident | T.integer | '(' + expr + ')'
-    block = '{' + Repeat(expr) + '}'
+    line = Ref('line')
+
+    atom = (
+      T.ident | T.integer |
+      T.type | T.true | T.false |
+      ('(' + Repeat(T.eol) + expr + Repeat(T.eol) + ')')
+    )
+    block = '{' + Repeat(T.eol) + Repeat(line) + Opt(expr) + '}' # TODO: Opt(epxr) is a hack to match c in {b; c}
 
     param = Opt(T.type) + T.ident
     returns = '(' + List(T.type, ',') + ')' | T.type
@@ -22,45 +37,66 @@ class UParser(lrparsing.Grammar):
     fun = Keyword('fun') + T.ident + _fun
     lamb = Keyword('fun') + _fun
 
-    file = Repeat(expr)
+    _else = Keyword('else') + block
+    _elif = Keyword('elif') + expr + block
+    _if = Keyword('if') + expr + block + Repeat(_elif) + Opt(_else) 
 
-    var = (T.type | Keyword('var')) + T.ident + Opt('=' + expr)
-    set = atom + '=' + expr
-    ref = '&' + atom
-    deref = '*' + atom
+    _while = Keyword('while') + expr + block
 
-    expr = Prio( # TODO: Order?
+    call = atom + '(' + List(expr, ',') + ')'
+    ret = Keyword('return') + Opt('(' + List(expr, ',') + ')')
+
+    expr = Prio( # TODO: Check order
       atom,
       block,
-      fun, lamb,
-      var, set,
-      ref, deref,
+      '(' + T.type + ')(' + THIS + ')', # Casting
+      (T.type | Keyword('var')) + T.ident, # Variable definition: "var a" or "int64 a"
+      THIS << '=' << THIS, # Setting "a = b", also matches for definitions "var a = b" # TODO: +=
+      Tokens('& *') >> (T.ident | '(' + THIS + ')'), # Pointer manipulation "&a" or "*a" or "*(123)"
+      Tokens("+ - !") >> THIS,
+      THIS << Tokens("* / %") << THIS,
+      THIS << Tokens("+ -") << THIS,
+      THIS << Tokens("== !=") << THIS,
+      THIS << Tokens("&& ||") << THIS,
+      fun, _if, _while, call, ret,
     )
+
+    line = expr + Some(T.eol)
+    file = Repeat(T.eol) + Repeat(line)
+
     START = file
     COMMENTS = (
       Token(re='/[*](?:[^*]|[*][^/])*[*]/') |
-      Token(re='//[^\n]*') # TODO: ^T.eol
+      Token(re='//(?:[^\r\n]*(?:\r\n?|\n\r?))')
     )
-    WHITESPACE = ' ;\n'
+    # WHITESPACE = ' '
 
-# parse_tree = UParser.parse('/* This is an\n * Example\n */\nfun main() int32 {\n\ttest() // Call a function\n  return 0\n}')
-# parse_tree = UParser.parse('ia = test(a)\ning = test(a, b, c) /* Call a function */')
 parse_tree = UParser.parse('''
-fun main
-(int64
-a, b
-,
-*int32 c)
-(int32/*asd*/, *int64) {
-a
-                           int32 z = 5
-                           var x
-                           x = 5
+fun times(int64 a, b) int64 {
+  int64 res = a
+  while ((b = b - 1) != 0) {
+    res = res + a
+  }
+  return (res)
+}
 
-var foo = fun() {}
-  b // This is comment*/
-  *z
-  &asdasd
-c}
+fun main(int64 a, b, *int64 c) (int64, bool) {
+  var sum = times(a, b)
+  // sum = (int32)(a + b); *c = sum; *(c + 1) = &sum
+  if sum == 42 {
+    return (sum, true)
+  } elif sum + 1 == 42 || sum - 1 == 42 {
+    return (sum, true)
+  } else {
+    return (sum, false)
+  }
+  /* TODO
+  return (
+    sum,
+    sum == 42
+  )
+  return sum, sum == 42
+  */
+}
 ''')
 print(UParser.repr_parse_tree(parse_tree))
